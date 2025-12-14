@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频漫剧生成工具 - AI自动生成分镜视频故事 | 树语智能</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="树语智能AI视频漫剧生成工具,一键将剧本转换为连贯视频故事。支持动漫风格和真人写实,自动生成分镜图片和动态视频,角色一致性保障,适合短视频创作、漫画改编、故事板制作。免费试用,高效专业。">
+    <meta name="keywords" content="视频漫剧生成,AI视频生成,漫剧创作工具,自动分镜,视频故事生成,AI动画制作,短视频工具,剧本转视频,角色一致性,树语智能,内容创作,AI创作助手,视频制作工具,动漫视频生成,真人视频生成">
+    <meta name="author" content="树语智能">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.shuyuzhineng.com/video-manga.html">
+    <meta property="og:title" content="视频漫剧生成工具 - AI自动生成分镜视频故事 | 树语智能">
+    <meta property="og:description" content="输入剧本,AI自动生成连贯的动态视频故事。支持动漫风格和真人写实,保证角色一致性,快速创作专业视频内容。">
+    <meta property="og:image" content="https://www.shuyuzhineng.com/logo.png">
+    <meta property="og:site_name" content="树语智能">
+    <meta property="og:locale" content="zh_CN">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.shuyuzhineng.com/video-manga.html">
+    <meta name="twitter:title" content="视频漫剧生成工具 - AI自动生成分镜视频故事">
+    <meta name="twitter:description" content="输入剧本,AI自动生成连贯的动态视频故事。支持动漫和真人风格,角色一致性保障。">
+    <meta name="twitter:image" content="https://www.shuyuzhineng.com/logo.png">
+    
+    <!-- Additional SEO -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="canonical" href="https://www.shuyuzhineng.com/video-manga.html">
+    
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "视频漫剧生成工具",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web Browser",
+        "description": "AI驱动的视频漫剧生成工具,将剧本自动转换为连贯的分镜视频故事,支持动漫和真人风格",
+        "url": "https://www.shuyuzhineng.com/video-manga.html",
+        "author": {
+            "@type": "Organization",
+            "name": "树语智能",
+            "url": "https://www.shuyuzhineng.com"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "CNY"
+        },
+        "featureList": [
+            "AI自动生成分镜提示词",
+            "动漫风格视频生成",
+            "真人写实视频生成",
+            "角色一致性保障",
+            "自动场景连贯",
+            "多种艺术风格",
+            "剧本智能分析"
+        ],
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "softwareVersion": "1.0"
+    }
+    </script>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="apple-touch-icon" href="/logo.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        .header-btn {
+            background: linear-gradient(135deg, #FF69B4 0%, #FF85C1 100%);
+            color: #ffffff;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            border-radius: 999px;
+            padding: 10px 16px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            box-shadow: 0 6px 16px rgba(255, 105, 180, 0.35);
+            transition: all 0.2s ease;
+        }
+
+        .header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(255, 105, 180, 0.45);
+        }
+
+        .nav-back-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-back-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.25) 100%);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            z-index: 0;
+        }
+        
+        .nav-back-btn > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .nav-back-btn:hover::before {
+            opacity: 1;
+        }
+
+        .page-wrapper {
+            background: linear-gradient(to bottom, #ffffff, #fff0f8);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white;
+            border-radius: 0;
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 64px);
+        }
+
+        .header {
+            position: relative;
+            background: linear-gradient(135deg, #FF69B4 0%, #FF85C1 100%);
+            color: white;
+            padding: 20px 16px 22px;
+            text-align: center;
+            border-bottom: 2px solid #FF1493;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .header-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+            position: relative;
+        }
+
+        .header-top h1 {
+            text-align: center;
+            margin: 0 auto;
+        }
+
+        .header-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 640px) {
+            .header {
+                text-align: center;
+                padding: 14px 12px 16px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+
+            .header-actions {
+                position: static;
+                justify-content: center;
+                width: 100%;
+            }
+
+            .header-top h1 {
+                font-size: 1.3em;
+                text-align: center;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .header-actions a {
+                width: calc(50% - 6px);
+                justify-content: center;
+                min-width: 140px;
+                text-align: center;
+            }
+
+            .header-btn {
+                padding: 8px 12px;
+                font-size: 0.95em;
+                box-shadow: 0 4px 12px rgba(255, 105, 180, 0.3);
+            }
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1em;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+        }
+
+        .form-container {
+            width: 25%;
+            flex-shrink: 0;
+            padding: 24px;
+            border-right: 1px solid #e5e7eb;
+            overflow-y: auto;
+            background: #f9fafb;
+            box-sizing: border-box;
+        }
+
+        .result-panel {
+            width: 75%;
+            flex-shrink: 0;
+            padding: 24px;
+            background: #ffffff;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.15s ease;
+            background: #ffffff;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #FF69B4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 150px;
+            font-family: inherit;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FF69B4 0%, #FF85C1 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .generate-btn:hover {
+            background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 105, 180, 0.4);
+        }
+
+        .generate-btn:disabled {
+            background: linear-gradient(135deg, #999 0%, #bbb 100%);
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner {
+            border: 4px solid #1a1a2e;
+            border-top: 4px solid #FF69B4;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #dc2626;
+            margin-bottom: 20px;
+        }
+
+        .success-message {
+            background: #f0fdf4;
+            color: #166534;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #22c55e;
+            margin-bottom: 20px;
+        }
+
+        .frame-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .frame-card:hover {
+            border-color: #FF69B4;
+            box-shadow: 0 4px 12px rgba(255, 105, 180, 0.15);
+        }
+
+        .frame-card h3 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .frame-image {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .video-section {
+            background: linear-gradient(135deg, #fff0f8 0%, #ffe6f3 100%);
+            border: 2px solid #FF69B4;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-section h4 {
+            color: #c2185b;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .video-preview video {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .prompt-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.9em;
+            color: #666;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .editable-prompt {
+            background: white;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.9em;
+            min-height: 80px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .editable-prompt:focus {
+            border-color: #FF69B4;
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #FF69B4;
+            background: #fff0f8;
+        }
+
+        .upload-area.drag-over {
+            border-color: #FF69B4;
+            background: #ffe6f3;
+            transform: scale(1.02);
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 1em;
+            color: #333;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .upload-hint {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .status-pending {
+            background: #e5e7eb;
+            color: #666;
+        }
+
+        .status-generating {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .download-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        .image-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #FF69B4 0%, #FF85C1 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 105, 180, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 卡片栅格：一行 3 个，图片/视频交错混排 */
+        #framesContainer {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        #framesContainer > * {
+            height: 100%;
+        }
+
+        .grid-full {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 1280px) {
+            #framesContainer {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            #framesContainer {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+            }
+            
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .form-container,
+            .result-panel {
+                width: 100%;
+                flex: none;
+                border-right: none;
+                padding: 16px;
+            }
+            
+            .form-container {
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="container">
+            <div class="header">
+                <div class="header-top">
+                    <h1>🎬 视频漫剧生成工具</h1>
+                    <div class="header-actions">
+                        <a href="./index.html" class="header-btn nav-back-btn inline-flex items-center gap-2 transition-all duration-300 font-semibold">
+                            <span style="position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m12 19-7-7 7-7"></path>
+                                    <path d="M19 12H5"></path>
+                                </svg>
+                                <span class="hidden sm:inline">返回首页</span>
+                            </span>
+                        </a>
+                        <a href="https://api.antsk.cn/" target="_blank" class="header-btn inline-flex items-center transition-all duration-300 font-semibold">
+                            <span style="position: relative; z-index: 1;">购买API</span>
+                        </a>
+                    </div>
+                </div>
+                <p style="margin: 0; font-size: 1.1em; opacity: 0.95;">输入剧本，AI 自动生成分镜图片和连贯的动态视频故事</p>
+            </div>
+
+            <div class="main-content">
+                <!-- 左侧表单 -->
+                <div class="form-container">
+                    <form id="videoMangaForm" onsubmit="event.preventDefault(); generateFramePrompts();">
+                        <div style="background: #fff0f8; padding: 12px; border-radius: 8px; border-left: 3px solid #FF69B4; margin-bottom: 14px;">
+                            <p style="margin: 0; color: #1a1a2e; font-size: 0.9em; font-weight: 500;">
+                                💎 <strong>使用高速 AI 渠道</strong> | 
+                                <a href="https://api.antsk.cn" target="_blank" style="color: #FF69B4; text-decoration: underline;">立即购买 API Key →</a>
+                            </p>
+                        </div>
+
+                        <div style="background: #e0f2fe; padding: 12px; border-radius: 8px; border-left: 3px solid #0ea5e9; margin-bottom: 20px;">
+                            <p style="margin: 0; color: #0f172a; font-size: 0.9em; font-weight: 600;">
+                                🎯 角色与场景一致性保障：<br>
+                                1️⃣ AI 自动提取剧本中的角色信息<br>
+                                2️⃣ 生成专业的角色设定图（展示所有角色造型）<br>
+                                3️⃣ 所有帧和视频都参考该设定图，保持角色完全一致<br>
+                                4️⃣ <strong>顺序生成机制</strong>：每一帧会引用前一帧的图片，确保场景、光影、风格连贯<br>
+                                5️⃣ <strong>视频连贯优化</strong>：每段视频使用前一段视频的最后一帧作为首帧，确保视频段落无缝衔接<br>
+                                <br>
+                                💡 <strong>省钱技巧</strong>：如果您已经有角色设定图，可以直接上传作为参考图，系统会跳过AI生成角色信息和角色设定图的步骤，<strong style="color: #dc2626;">节省大量Token消费！</strong>
+                            </p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="apiKey">🔑 API 密钥:</label>
+                            <input type="password" id="apiKey" placeholder="请输入您的 API Key" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="modelSelect">🤖 模型选择:</label>
+                            <select id="modelSelect">
+                                <option value="gpt-41">gpt-41</option>
+                                <option value="gpt-5.2">gpt-5.2</option>
+                                <option value="gpt-5.1">gpt-5.1</option>
+                                <option value="claude-sonnet-4-5-20250929">claude-sonnet-4-5-20250929</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="videoModelSelect">🎬 视频生成模型:</label>
+                            <select id="videoModelSelect">
+                                <option value="sora-2">Sora-2（OpenAI视频生成）</option>
+                                <option value="veo_3_1_i2v_s_fast_fl_landscape">Veo 3.1（Google视频生成）</option>
+                            </select>
+                            <p style="color: #666; font-size: 0.85em; margin-top: 6px;">选择用于生成视频的AI模型，不同模型生成效果和速度有差异</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="styleSelect">🎨 视频/图片风格:</label>
+                            <select id="styleSelect">
+                                <optgroup label="🎭 动漫风格">
+                                    <option value="kawaii">日系萌系 (Kawaii)</option>
+                                    <option value="shonen">少年热血 (Shonen)</option>
+                                    <option value="shoujo">少女浪漫 (Shoujo)</option>
+                                    <option value="fantasy">奇幻冒险</option>
+                                    <option value="slice-of-life">日常治愈</option>
+                                    <option value="cyberpunk">赛博朋克</option>
+                                    <option value="wuxia">国风武侠</option>
+                                    <option value="xianxia">国风仙侠</option>
+                                    <option value="guofeng">国风古韵</option>
+                                    <option value="urban">都市潮流</option>
+                                    <option value="vintage">复古胶片</option>
+                                    <option value="scifi">科幻未来</option>
+                                    <option value="dark-fantasy">暗黑奇幻</option>
+                                </optgroup>
+                                <optgroup label="📷 真人写实">
+                                    <option value="realistic">真人写实（超高清摄影）</option>
+                                    <option value="cinematic-realism">电影写实（专业摄影）</option>
+                                    <option value="fashion-portrait">时尚写真（高级摄影）</option>
+                                    <option value="documentary">纪实风格（自然抓拍）</option>
+                                    <option value="dramatic-realism">戏剧写实（强烈光影）</option>
+                                </optgroup>
+                                <optgroup label="🎨 自定义">
+                                    <option value="custom">其他（自定义）</option>
+                                </optgroup>
+                            </select>
+                            <p style="color: #666; font-size: 0.85em; margin-top: 6px;">选择整体画风，影响所有帧与视频的风格一致性。<strong>真人写实风格</strong>将生成照片级真实人物。</p>
+                        </div>
+
+                        <div class="form-group" id="customStyleGroup" style="display: none;">
+                            <label for="customStyle">自定义风格:</label>
+                            <input type="text" id="customStyle" placeholder="例如：蒸汽朋克、暗黑系、复古胶片、低饱和赛博...">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="stylePreference">✨ 风格偏好（可选）:</label>
+                            <input type="text" id="stylePreference" placeholder="关键词，如：冷色调、霓虹、高对比、低饱和、电影感、胶片颗粒">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="imageFile">📷 角色参考图（可选，最多3张）:</label>
+                            <div style="background: #dcfce7; padding: 10px; border-radius: 6px; border-left: 3px solid #22c55e; margin-bottom: 10px;">
+                                <p style="margin: 0; color: #166534; font-size: 0.85em; font-weight: 600;">
+                                    💰 <strong>省钱模式</strong>：上传您提前准备好的角色设定图，系统将直接使用，跳过AI生成环节，节省Token费用！
+                                </p>
+                            </div>
+                            <div class="upload-area" id="uploadArea">
+                                <input type="file" id="imageFile" accept="image/*" multiple onchange="handleImageUpload(this)">
+                                <div class="upload-icon">🖼️</div>
+                                <div class="upload-text">点击或拖拽图片到此处上传</div>
+                                <div class="upload-hint">上传角色参考图片，保持各帧人物造型一致</div>
+                            </div>
+                            <div id="imagePreviewInput" style="margin-top: 10px;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="frameCount">🎞️ 生成帧数:</label>
+                            <select id="frameCount">
+                                <option value="4">4 帧（3段视频）</option>
+                                <option value="5">5 帧（4段视频）</option>
+                                <option value="6">6 帧（5段视频）</option>
+                                <option value="8">8 帧（7段视频）</option>
+                            </select>
+                            <p style="color: #666; font-size: 0.85em; margin-top: 6px;">帧数 = 图片数量，视频数 = 帧数 - 1</p>
+                        </div>
+
+                        <div style="background: #fffbeb; padding: 14px; border-radius: 8px; border-left: 3px solid #f59e0b; margin-bottom: 20px;">
+                            <h4 style="margin: 0 0 8px 0; color: #92400e; font-size: 0.95em; font-weight: 600;">📋 使用说明</h4>
+                            <ul style="margin: 0; padding-left: 20px; color: #78350f; font-size: 0.85em; line-height: 1.7;">
+                                <li><strong>动漫风格</strong>：先用 AI 动画/绘图工具生成角色参考图，锁定角色造型</li>
+                                <li><strong>真人写实</strong>：剧本中详细描述人物特征（如"25岁亚洲女性，黑色长发，白衬衫"）</li>
+                                <li>输入剧本，AI 生成图片提示词</li>
+                                <li><strong>⚠️ 按顺序生成图片</strong>：图片必须从第1帧开始依次生成，每一帧会引用前一帧保持场景连贯</li>
+                                <li>AI 自动生成视频过渡提示词</li>
+                                <li><strong>⚠️ 按顺序生成视频</strong>：视频必须从第1段开始依次生成，每段会使用前一段的最后一帧作为首帧，确保视频无缝衔接</li>
+                                <li>所有视频生成完成后，可下载并拼接成完整故事</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="scriptIdea">💡 剧本创意（可选）:</label>
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <textarea id="scriptIdea" placeholder="输入您的创意想法，AI 将帮您生成完整剧本。例如：&#10;• 一个魔法少女在学院学习魔法，最后魔法失控的故事&#10;• 都市白领接到神秘电话后卷入一场阴谋&#10;• 赛博朋克世界中的黑客与AI的对决" style="flex: 1; min-height: 80px;"></textarea>
+                                <button type="button" onclick="generateScriptFromIdea()" class="btn-primary" id="generateScriptBtn" style="padding: 10px 20px; white-space: nowrap; height: fit-content;">
+                                    ✨ AI生成剧本
+                                </button>
+                            </div>
+                            <p style="color: #666; font-size: 0.85em; margin-top: 6px;">💡 提示：输入创意后点击按钮，AI会自动生成剧本，您可以在下方编辑修改</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="script">📝 剧本内容:</label>
+                            <textarea id="script" placeholder="动漫示例：讲述一个魔法少女的冒险故事。开场是她站在魔法学院门前，然后走进教室，接着施展魔法，最后魔法失控引起轰动...&#10;&#10;真人示例：25岁亚洲女性，黑色长发，身穿白色衬衫和黑色西裤。清晨，她走在现代化的办公楼前，接到一个神秘电话,表情从疑惑变为惊讶，快步走进大楼..." required></textarea>
+                        </div>
+
+                        <button type="submit" class="generate-btn" id="generatePromptsBtn">
+                            <span id="generatePromptsBtnText">🚀 开始生成</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 右侧结果 -->
+                <div class="result-panel">
+                    <div id="defaultMessage" style="text-align: center; color: #999; padding: 60px 20px;">
+                        <div style="font-size: 5em; margin-bottom: 20px;">🎥</div>
+                        <h3 style="color: #666; margin-bottom: 12px;">开始创作视频漫剧</h3>
+                        <p>输入剧本，让 AI 为您生成完整的视频故事</p>
+                    </div>
+
+                    <div id="loadingPrompts" class="loading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <p style="color: #666; font-weight: 600;">正在生成图片提示词，请稍候...</p>
+                    </div>
+
+                    <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+                    <!-- 角色信息展示 -->
+                    <div id="charactersInfo" style="display: none; margin-bottom: 20px;">
+                        <div style="background: linear-gradient(135deg, #fff0f8 0%, #ffe6f3 100%); border: 2px solid #FF69B4; border-radius: 12px; padding: 20px;">
+                            <h3 style="color: #c2185b; margin-bottom: 12px; font-size: 1.2em; display: flex; align-items: center; gap: 8px;">
+                                👥 提取的角色信息
+                            </h3>
+                            <div id="charactersContent" style="background: white; border-radius: 8px; padding: 15px; white-space: pre-wrap; line-height: 1.8; color: #333;"></div>
+                            <p style="margin: 12px 0 0 0; color: #666; font-size: 0.9em;">
+                                ℹ️ 后续每一帧的图片生成都将参考角色设定图和角色描述，确保造型完全一致
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 手动触发分镜提示词 -->
+                    <div id="promptNextStep" style="display: none; margin-bottom: 20px;">
+                        <div class="success-message" style="margin-bottom: 10px;">
+                            <h4 style="margin: 0 0 6px 0; font-size: 1.05em;">✅ 角色设定图已生成</h4>
+                            <p style="margin: 0;">确认角色无误后，点击下方按钮再生成图片提示词分镜。</p>
+                        </div>
+                        <button onclick="generateImagePromptsManual()" class="generate-btn" id="manualGeneratePromptsBtn">
+                            🧠 生成图片提示词
+                        </button>
+                    </div>
+
+                    <!-- 图片提示词结果 -->
+                    <div id="promptsResult" style="display: none;">
+                        <div class="success-message">
+                            <h4 style="margin: 0 0 8px 0; font-size: 1.1em;">✅ 图片提示词生成完成！</h4>
+                            <p style="margin: 0;">请检查提示词，然后点击"生成所有图片"按钮</p>
+                        </div>
+
+                        <button onclick="generateAllImages()" class="generate-btn" id="generateImagesBtn" style="margin-bottom: 20px;">
+                            🎨 生成所有图片
+                        </button>
+
+                        <div id="framesContainer"></div>
+                    </div>
+
+                    <!-- 视频生成区域 -->
+                    <div id="videosContainer" style="display: none;"></div>
+
+                    <div id="completionMessage" class="success-message" style="display: none;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 1.1em;">🎉 视频漫剧生成完成！</h4>
+                        <p style="margin: 0;">您可以下载视频或继续生成新的视频漫剧</p>
+                    </div>
+
+                    <!-- 剧情解说文案生成区域 -->
+                    <div id="narrationSection" style="margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #fff0f8 0%, #ffe6f3 100%); border: 2px solid #FF69B4; border-radius: 12px;">
+                        <h3 style="color: #c2185b; margin: 0 0 12px 0; font-size: 1.2em; display: flex; align-items: center; gap: 8px;">
+                            📝 剧情解说文案
+                            <span style="font-size: 0.75em; background: #FF69B4; color: white; padding: 2px 8px; border-radius: 10px;">NEW</span>
+                        </h3>
+                        <p style="color: #c2185b; margin: 0 0 15px 0; font-size: 0.95em;">
+                            基于所有分镜片段生成一份连贯的剧情解说文案脚本，可用于视频配音解说。
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="generateNarrationScript()" class="generate-btn" id="generateNarrationBtn" style="flex: 1; min-width: 200px;">
+                                📝 生成剧情解说文案
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 解说文案展示区域 -->
+                    <div id="narrationContainer" style="display: none; margin-top: 20px;">
+                        <div style="background: white; border: 2px solid #FF69B4; border-radius: 12px; overflow: hidden;">
+                            <div style="background: linear-gradient(135deg, #FF69B4 0%, #FF85C1 100%); padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                                <h4 style="color: white; margin: 0; font-size: 1.15em; display: flex; align-items: center; gap: 8px;">
+                                    📝 剧情解说文案脚本
+                                </h4>
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="copyNarration()" id="copyNarrationBtn" style="padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em; transition: all 0.2s;">
+                                        📋 复制文案
+                                    </button>
+                                    <button onclick="downloadNarration()" style="padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em; transition: all 0.2s;">
+                                        📥 下载文案
+                                    </button>
+                                    <button onclick="generateNarrationScript()" style="padding: 8px 16px; background: rgba(255,255,255,0.3); color: white; border: 1px solid rgba(255,255,255,0.5); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em; transition: all 0.2s;">
+                                        🔄 重新生成
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="narrationContent" style="padding: 20px; line-height: 1.8; color: #333; white-space: pre-wrap; max-height: 600px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片查看模态框 -->
+    <div id="imageModal" class="image-modal" onclick="closeImageModal(event)">
+        <span class="image-modal-close" onclick="closeImageModal(event)">&times;</span>
+        <img class="image-modal-content" id="modalImage">
+    </div>
+
+    <script src="./video-manga.js"></script>
+</body>
+</html>
