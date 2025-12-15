@@ -9,6 +9,7 @@ import { ProjectState } from './types';
 import { Key, Save, CheckCircle, ArrowRight, ShieldCheck, Loader2, X } from 'lucide-react';
 import { saveProjectToDB } from './services/storageService';
 import { setGlobalApiKey, verifyApiKey } from './services/geminiService';
+import logoImg from './logo.png';
 
 function App() {
   const [project, setProject] = useState<ProjectState | null>(null);
@@ -138,9 +139,7 @@ function App() {
         <div className="w-full max-w-md bg-[#0A0A0A] border border-zinc-800 p-8 rounded-xl shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-300">
           
           <div className="flex items-center gap-3 mb-8 border-b border-zinc-900 pb-6">
-             <div className="w-10 h-10 bg-white text-black flex items-center justify-center">
-                <Key className="w-5 h-5" />
-             </div>
+             <img src={logoImg} alt="Logo" className="w-10 h-10 flex-shrink-0" />
              <div>
                 <h1 className="text-xl font-bold text-white tracking-wide">BigBanana AI Director</h1>
                 <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Authentication Required</p>
