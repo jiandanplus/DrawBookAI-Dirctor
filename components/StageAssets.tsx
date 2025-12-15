@@ -21,6 +21,10 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   const [editingPromptCharId, setEditingPromptCharId] = useState<string | null>(null);
   const [editedPrompt, setEditedPrompt] = useState("");
 
+  // Scene Prompt Editing State
+  const [editingPromptSceneId, setEditingPromptSceneId] = useState<string | null>(null);
+  const [editedScenePrompt, setEditedScenePrompt] = useState("");
+
   const handleGenerateAsset = async (type: 'character' | 'scene', id: string) => {
     setGeneratingIds(prev => new Set([...prev, id]));
     try {
@@ -195,7 +199,27 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     setEditingPromptCharId(null);
     setEditedPrompt('');
   };
+  // Scene prompt editing handlers
+  const handleSaveScenePrompt = (sceneId: string) => {
+    if (!project.scriptData) return;
+    const newData = { ...project.scriptData };
+    const scene = newData.scenes.find(s => s.id === sceneId);
+    if (!scene) return;
+    
+    scene.visualPrompt = editedScenePrompt.trim();
+    updateProject({ scriptData: newData });
+    setEditingPromptSceneId(null);
+  };
 
+  const handleStartEditScenePrompt = (sceneId: string, currentPrompt: string) => {
+    setEditingPromptSceneId(sceneId);
+    setEditedScenePrompt(currentPrompt);
+  };
+
+  const handleCancelEditScenePrompt = () => {
+    setEditingPromptSceneId(null);
+    setEditedScenePrompt("");
+  };
   if (!project.scriptData) return (
       <div className="h-full flex flex-col items-center justify-center bg-[#121212] text-zinc-500">
          <p>请先完成 Phase 01 剧本分析</p>
@@ -602,7 +626,69 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                      <h3 className="font-bold text-zinc-200 text-sm truncate">{scene.location}</h3>
                      <span className="px-1.5 py-0.5 bg-zinc-900 text-zinc-500 text-[9px] rounded border border-zinc-800 uppercase font-mono">{scene.time}</span>
                   </div>
-                  <p className="text-[10px] text-zinc-500 line-clamp-1">{scene.atmosphere}</p>
+                  <p className="text-[10px] text-zinc-500 line-clamp-1 mb-3">{scene.atmosphere}</p>
+
+                  {/* Scene Prompt Section */}
+                  <div className="mt-3 pt-3 border-t border-zinc-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Camera className="w-3 h-3" />
+                        场景提示词
+                      </label>
+                      {editingPromptSceneId !== scene.id && (
+                        <button
+                          onClick={() => handleStartEditScenePrompt(scene.id, scene.visualPrompt || '')}
+                          className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-zinc-800 rounded"
+                          title="编辑提示词"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+
+                    {editingPromptSceneId === scene.id ? (
+                      /* 编辑模式 */
+                      <div className="space-y-2">
+                        <textarea
+                          value={editedScenePrompt}
+                          onChange={(e) => setEditedScenePrompt(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-700 rounded p-2 text-[11px] text-zinc-300 leading-relaxed font-mono resize-none focus:outline-none focus:border-zinc-500"
+                          rows={4}
+                          placeholder="输入场景视觉描述..."
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSaveScenePrompt(scene.id)}
+                            className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1"
+                          >
+                            <Save className="w-3 h-3" /> 保存
+                          </button>
+                          <button
+                            onClick={handleCancelEditScenePrompt}
+                            className="flex-1 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-[10px] font-bold uppercase tracking-wider transition-colors"
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* 显示模式 */
+                      <div className="bg-zinc-900/50 border border-zinc-800 rounded p-2 overflow-y-auto max-h-[120px]">
+                        {scene.visualPrompt ? (
+                          <p className="text-[10px] text-zinc-400 leading-relaxed font-mono">
+                            {scene.visualPrompt}
+                          </p>
+                        ) : (
+                          <div className="flex items-start gap-2 text-zinc-600">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <p className="text-[10px] leading-relaxed">
+                              未设置提示词。点击编辑按钮添加场景的视觉描述。
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
