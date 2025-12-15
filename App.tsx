@@ -9,6 +9,7 @@ import { ProjectState } from './types';
 import { Key, Save, CheckCircle, ArrowRight, ShieldCheck, Loader2, X } from 'lucide-react';
 import { saveProjectToDB } from './services/storageService';
 import { setGlobalApiKey, verifyApiKey } from './services/geminiService';
+import { setLogCallback, clearLogCallback } from './services/renderLogService';
 import logoImg from './logo.png';
 
 function App() {
@@ -31,6 +32,25 @@ function App() {
       setGlobalApiKey(storedKey);
     }
   }, []);
+
+  // Setup render log callback
+  useEffect(() => {
+    if (project) {
+      setLogCallback((log) => {
+        setProject(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            renderLogs: [...(prev.renderLogs || []), log]
+          };
+        });
+      });
+    } else {
+      clearLogCallback();
+    }
+    
+    return () => clearLogCallback();
+  }, [project?.id]); // Re-setup when project changes
 
   // Auto-save logic
   useEffect(() => {

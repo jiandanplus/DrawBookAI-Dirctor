@@ -37,7 +37,14 @@ export const loadProjectFromDB = async (id: string): Promise<ProjectState> => {
     const store = tx.objectStore(STORE_NAME);
     const request = store.get(id);
     request.onsuccess = () => {
-      if (request.result) resolve(request.result);
+      if (request.result) {
+        const project = request.result;
+        // Migration: ensure renderLogs exists for old projects
+        if (!project.renderLogs) {
+          project.renderLogs = [];
+        }
+        resolve(project);
+      }
       else reject(new Error("Project not found"));
     };
     request.onerror = () => reject(request.error);
@@ -95,5 +102,6 @@ export const createNewProjectState = (): ProjectState => {
     scriptData: null,
     shots: [],
     isParsingScript: false,
+    renderLogs: [], // Initialize empty render logs array
   };
 };

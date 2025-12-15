@@ -1,4 +1,5 @@
 import { ScriptData, Shot, Character, Scene } from "../types";
+import { addRenderLogWithTokens } from './renderLogService';
 
 // Module-level variable to store the key at runtime
 let runtimeApiKey: string = process.env.API_KEY || "";
@@ -348,11 +349,13 @@ export const generateVisualPrompts = async (type: 'character' | 'scene', data: C
  */
 export const generateImage = async (prompt: string, referenceImages: string[] = []): Promise<string> => {
   const apiKey = checkApiKey();
+  const startTime = Date.now();
 
-  // If we have reference images, instruct the model to use them for consistency
-  let finalPrompt = prompt;
-  if (referenceImages.length > 0) {
-    finalPrompt = `
+  try {
+    // If we have reference images, instruct the model to use them for consistency
+    let finalPrompt = prompt;
+    if (referenceImages.length > 0) {
+      finalPrompt = `
       Reference Images Information:
       - The FIRST image provided is the Scene/Environment reference.
       - Any subsequent images are Character references (e.g. Base Look, or specific Variation).
@@ -364,7 +367,7 @@ export const generateImage = async (prompt: string, referenceImages: string[] = 
       - STRICTLY maintain the visual style, lighting, and environment from the scene reference.
       - If characters are present, they MUST resemble the character reference images provided.
     `;
-  }
+    }
 
   const parts: any[] = [{ text: finalPrompt }];
 
@@ -418,12 +421,40 @@ export const generateImage = async (prompt: string, referenceImages: string[] = 
   if (candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
     for (const part of candidates[0].content.parts) {
       if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
+        const result = `data:image/png;base64,${part.inlineData.data}`;
+        
+        // Log successful generation
+        addRenderLogWithTokens({
+          type: 'keyframe',
+          resourceId: 'image-' + Date.now(),
+          resourceName: prompt.substring(0, 50) + '...',
+          status: 'success',
+          model: 'imagen-3',
+          prompt: prompt,
+          duration: Date.now() - startTime
+        });
+        
+        return result;
       }
     }
   }
   
   throw new Error("图片生成失败 (No image data returned)");
+  } catch (error: any) {
+    // Log failed generation
+    addRenderLogWithTokens({
+      type: 'keyframe',
+      resourceId: 'image-' + Date.now(),
+      resourceName: prompt.substring(0, 50) + '...',
+      status: 'failed',
+      model: 'imagen-3',
+      prompt: prompt,
+      error: error.message,
+      duration: Date.now() - startTime
+    });
+    
+    throw error;
+  }
 };
 
 /**

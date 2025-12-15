@@ -69,6 +69,22 @@ export interface ScriptData {
   storyParagraphs: { id: number; text: string; sceneRefId: string }[];
 }
 
+export interface RenderLog {
+  id: string;
+  timestamp: number; // Unix timestamp when API was called
+  type: 'character' | 'character-variation' | 'scene' | 'keyframe' | 'video' | 'script-parsing';
+  resourceId: string; // ID of the resource being generated
+  resourceName: string; // Human-readable name
+  status: 'success' | 'failed';
+  model: string; // Model used (e.g., 'imagen-3', 'veo_3_1_i2v_s_fast_fl_landscape', 'gpt-41')
+  prompt?: string; // The prompt used (optional, for debugging)
+  error?: string; // Error message if failed
+  inputTokens?: number; // Input tokens consumed
+  outputTokens?: number; // Output tokens generated
+  totalTokens?: number; // Total tokens (if available from API)
+  duration?: number; // Time taken in milliseconds
+}
+
 export interface ProjectState {
   id: string;
   title: string;
@@ -85,4 +101,5 @@ export interface ProjectState {
   scriptData: ScriptData | null;
   shots: Shot[];
   isParsingScript: boolean;
+  renderLogs: RenderLog[]; // History of all API calls for this project
 }

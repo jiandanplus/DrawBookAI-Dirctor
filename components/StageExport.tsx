@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Download, Share2, FileVideo, Layers, Clock, CheckCircle, BarChart3, Loader2 } from 'lucide-react';
+import { Film, Download, Share2, FileVideo, Layers, Clock, CheckCircle, BarChart3, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { ProjectState } from '../types';
 import { downloadMasterVideo, downloadSourceAssets } from '../services/exportService';
 
@@ -24,6 +24,10 @@ const StageExport: React.FC<Props> = ({ project }) => {
   const [isDownloadingAssets, setIsDownloadingAssets] = useState(false);
   const [assetsPhase, setAssetsPhase] = useState('');
   const [assetsProgress, setAssetsProgress] = useState(0);
+
+  // Render Logs Modal state
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   // Handle master video download
   const handleDownloadMaster = async () => {
@@ -51,6 +55,12 @@ const StageExport: React.FC<Props> = ({ project }) => {
       setDownloadPhase('');
       setDownloadProgress(0);
     }
+  };
+
+  // Collect render logs from project
+  const collectRenderLogs = () => {
+    const logs = project.renderLogs || [];
+    return { logs: logs.sort((a, b) => b.timestamp - a.timestamp) };
   };
 
   // Handle source assets download
@@ -258,17 +268,204 @@ const StageExport: React.FC<Props> = ({ project }) => {
                     <p className="text-[10px] text-zinc-500">Create a view-only link for client review.</p>
                   </div>
               </div>
-              <div className="p-5 bg-[#141414] border border-zinc-800 rounded-xl hover:border-zinc-600 transition-colors group cursor-pointer flex flex-col justify-between h-32">
+              <div 
+                  onClick={() => setShowLogsModal(true)}
+                  className="p-5 bg-[#141414] border border-zinc-800 rounded-xl hover:border-zinc-600 transition-colors group cursor-pointer flex flex-col justify-between h-32"
+              >
                   <Clock className="w-5 h-5 text-zinc-600 group-hover:text-indigo-400 mb-4 transition-colors" />
                   <div>
                     <h4 className="text-sm font-bold text-white mb-1">Render Logs</h4>
-                    <p className="text-[10px] text-zinc-500">View generation history and token usage.</p>
+                    <p className="text-[10px] text-zinc-500">View generation history and status.</p>
                   </div>
               </div>
           </div>
 
         </div>
       </div>
+
+      {/* Render Logs Modal */}
+      {showLogsModal && (() => {
+        const { logs } = collectRenderLogs();
+        
+        return (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-[#141414] border border-zinc-800 rounded-xl max-w-4xl w-full max-h-[80vh] flex flex-col shadow-2xl">
+              {/* Header */}
+              <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-indigo-500" />
+                  <h3 className="text-xl font-bold text-white">Render Logs</h3>
+                  <span className="px-2 py-0.5 bg-zinc-900 border border-zinc-700 text-zinc-400 text-[10px] rounded uppercase font-mono tracking-wider">
+                    {logs.length} Events
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowLogsModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Stats Panel */}
+              <div className="p-6 border-b border-zinc-800 bg-[#0A0A0A]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-[#141414] border border-zinc-800 rounded-lg p-4">
+                    <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Total Events</div>
+                    <div className="text-2xl font-mono font-bold text-white">{logs.length}</div>
+                  </div>
+                  <div className="bg-[#141414] border border-zinc-800 rounded-lg p-4">
+                    <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Completed</div>
+                    <div className="text-2xl font-mono font-bold text-green-400">
+                      {logs.filter(l => l.status === 'success').length}
+                    </div>
+                  </div>
+                  <div className="bg-[#141414] border border-zinc-800 rounded-lg p-4">
+                    <div className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Failed</div>
+                    <div className="text-2xl font-mono font-bold text-red-400">
+                      {logs.filter(l => l.status === 'failed').length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logs List */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-2">
+                {logs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-zinc-600">
+                    <Clock className="w-12 h-12 mb-4 opacity-30" />
+                    <p className="text-sm font-mono uppercase tracking-widest">No generation history available</p>
+                  </div>
+                ) : (
+                  logs.map((log) => {
+                    const statusColor = log.status === 'success' ? 'text-green-400 bg-green-500/10 border-green-500/30' :
+                                       'text-red-400 bg-red-500/10 border-red-500/30';
+                    
+                    const typeIcon = log.type === 'character' || log.type === 'character-variation' ? '👤' :
+                                    log.type === 'scene' ? '🎬' :
+                                    log.type === 'keyframe' ? '🖼️' : 
+                                    log.type === 'video' ? '🎥' : '📝';
+                    
+                    const isExpanded = expandedLogId === log.id;
+                    const hasDetails = log.prompt || log.resourceId || log.inputTokens || log.outputTokens;
+                    
+                    return (
+                      <div key={log.id} className="bg-[#0A0A0A] border border-zinc-800 rounded-lg overflow-hidden hover:border-zinc-700 transition-colors">
+                        <div 
+                          className="p-4 cursor-pointer"
+                          onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl mt-0.5">{typeIcon}</span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-bold text-white">{log.resourceName}</h4>
+                                <span className={`px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded border ${statusColor}`}>
+                                  {log.status}
+                                </span>
+                                {log.duration && (
+                                  <span className="px-1.5 py-0.5 text-[9px] font-mono text-zinc-500 bg-zinc-900 rounded border border-zinc-800">
+                                    {(log.duration / 1000).toFixed(1)}s
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-[10px] text-zinc-500">
+                                <span className="font-mono">
+                                  {new Date(log.timestamp).toLocaleString('zh-CN', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit'
+                                  })}
+                                </span>
+                                <span className="text-zinc-700">|</span>
+                                <span className="uppercase tracking-wider">{log.model}</span>
+                                <span className="text-zinc-700">|</span>
+                                <span className="uppercase tracking-wider text-zinc-600">{log.type}</span>
+                              </div>
+                              {log.error && (
+                                <div className="mt-2 p-2 bg-red-500/5 border border-red-500/20 rounded text-[10px] text-red-400">
+                                  {log.error}
+                                </div>
+                              )}
+                            </div>
+                            {hasDetails && (
+                              <button className="mt-1 text-zinc-600 hover:text-white transition-colors">
+                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Expanded Details */}
+                        {isExpanded && hasDetails && (
+                          <div className="px-4 pb-4 border-t border-zinc-800 pt-3 space-y-3">
+                            {log.resourceId && (
+                              <div>
+                                <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Resource ID</div>
+                                <div className="text-[10px] text-zinc-400 font-mono bg-black/30 px-2 py-1 rounded">
+                                  {log.resourceId}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {log.prompt && (
+                              <div>
+                                <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Prompt</div>
+                                <div className="text-[10px] text-zinc-300 bg-black/30 px-3 py-2 rounded max-h-32 overflow-y-auto">
+                                  {log.prompt}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {(log.inputTokens || log.outputTokens || log.totalTokens) && (
+                              <div>
+                                <div className="text-[9px] text-zinc-600 uppercase tracking-widest font-bold mb-1">Token Usage</div>
+                                <div className="flex gap-4 text-[10px]">
+                                  {log.inputTokens && (
+                                    <div className="bg-black/30 px-2 py-1 rounded">
+                                      <span className="text-zinc-500">Input:</span>
+                                      <span className="text-indigo-400 font-mono ml-1">{log.inputTokens}</span>
+                                    </div>
+                                  )}
+                                  {log.outputTokens && (
+                                    <div className="bg-black/30 px-2 py-1 rounded">
+                                      <span className="text-zinc-500">Output:</span>
+                                      <span className="text-indigo-400 font-mono ml-1">{log.outputTokens}</span>
+                                    </div>
+                                  )}
+                                  {log.totalTokens && (
+                                    <div className="bg-black/30 px-2 py-1 rounded">
+                                      <span className="text-zinc-500">Total:</span>
+                                      <span className="text-indigo-400 font-mono ml-1">{log.totalTokens}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-zinc-800 bg-[#0A0A0A] flex justify-end items-center">
+                <button
+                  onClick={() => setShowLogsModal(false)}
+                  className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
