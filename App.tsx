@@ -17,12 +17,14 @@ function App() {
   const [apiKey, setApiKey] = useState<string>('');
   const [inputKey, setInputKey] = useState('');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [showSaveStatus, setShowSaveStatus] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string>('');
   const [showQrCode, setShowQrCode] = useState(false);
   
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
+  const hideStatusTimeoutRef = useRef<any>(null);
 
   // Load API Key from localStorage on mount
   useEffect(() => {
@@ -90,6 +92,7 @@ function App() {
     if (!project) return;
 
     setSaveStatus('unsaved');
+    setShowSaveStatus(true);
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
 
     saveTimeoutRef.current = setTimeout(async () => {
@@ -106,6 +109,23 @@ function App() {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, [project]);
+
+  // Auto-hide save status after 2 seconds
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      if (hideStatusTimeoutRef.current) clearTimeout(hideStatusTimeoutRef.current);
+      hideStatusTimeoutRef.current = setTimeout(() => {
+        setShowSaveStatus(false);
+      }, 2000);
+    } else if (saveStatus === 'saving') {
+      setShowSaveStatus(true);
+      if (hideStatusTimeoutRef.current) clearTimeout(hideStatusTimeoutRef.current);
+    }
+
+    return () => {
+      if (hideStatusTimeoutRef.current) clearTimeout(hideStatusTimeoutRef.current);
+    };
+  }, [saveStatus]);
 
   const handleSaveKey = async () => {
     if (!inputKey.trim()) return;
@@ -315,19 +335,21 @@ function App() {
         {renderStage()}
         
         {/* Save Status Indicator */}
-        <div className="absolute top-4 right-6 pointer-events-none opacity-50 flex items-center gap-2 text-xs font-mono text-zinc-400 bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm z-50">
-           {saveStatus === 'saving' ? (
-             <>
-               <Save className="w-3 h-3 animate-pulse" />
-               保存中...
-             </>
-           ) : (
-             <>
-               <CheckCircle className="w-3 h-3 text-green-500" />
-               已保存
-             </>
-           )}
-        </div>
+        {showSaveStatus && (
+          <div className="absolute top-4 right-6 pointer-events-none flex items-center gap-2 text-xs font-mono text-zinc-400 bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+             {saveStatus === 'saving' ? (
+               <>
+                 <Save className="w-3 h-3 animate-pulse" />
+                 保存中...
+               </>
+             ) : (
+               <>
+                 <CheckCircle className="w-3 h-3 text-green-500" />
+                 已保存
+               </>
+             )}
+          </div>
+        )}
       </main>
       
       <div className="lg:hidden fixed inset-0 bg-black z-[100] flex items-center justify-center p-8 text-center">
