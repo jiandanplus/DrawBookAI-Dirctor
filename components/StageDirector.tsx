@@ -29,8 +29,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
   const allStartFramesGenerated = project.shots.length > 0 && project.shots.every(s => s.keyframes?.find(k => k.type === 'start')?.imageUrl);
 
   const updateShot = (shotId: string, transform: (s: Shot) => Shot) => {
-    const newShots = project.shots.map(s => s.id === shotId ? transform(s) : s);
-    updateProject({ shots: newShots });
+    // 使用函数式更新避免竞态条件，确保使用最新的 state
+    updateProject((prevProject: ProjectState) => ({
+      ...prevProject,
+      shots: prevProject.shots.map(s => s.id === shotId ? transform(s) : s)
+    }));
   };
 
   const getRefImagesForShot = (shot: Shot) => {
