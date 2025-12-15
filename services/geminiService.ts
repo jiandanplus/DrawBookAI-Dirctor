@@ -133,6 +133,8 @@ const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', tempera
  */
 export const parseScriptToData = async (rawText: string, language: string = '中文', model: string = 'gpt-5.1'): Promise<ScriptData> => {
   console.log('📝 parseScriptToData 调用 - 使用模型:', model);
+  const startTime = Date.now();
+  
   const prompt = `
     Analyze the text and output a JSON object in the language: ${language}.
     
@@ -156,7 +158,8 @@ export const parseScriptToData = async (rawText: string, language: string = '中
     }
   `;
 
-  const responseText = await retryOperation(() => chatCompletion(prompt, model, 0.7, 8192));
+  try {
+    const responseText = await retryOperation(() => chatCompletion(prompt, model, 0.7, 8192));
 
   let parsed: any = {};
   try {
@@ -211,7 +214,7 @@ export const parseScriptToData = async (rawText: string, language: string = '中
 
   console.log("✅ 视觉提示词生成完成！");
 
-  return {
+  const result = {
     title: parsed.title || "未命名剧本",
     genre: genre,
     logline: parsed.logline || "",
@@ -220,10 +223,38 @@ export const parseScriptToData = async (rawText: string, language: string = '中
     scenes,
     storyParagraphs
   };
+
+  // Log successful script parsing
+  addRenderLogWithTokens({
+    type: 'script-parsing',
+    resourceId: 'script-parse-' + Date.now(),
+    resourceName: result.title,
+    status: 'success',
+    model: model,
+    prompt: prompt.substring(0, 200) + '...',
+    duration: Date.now() - startTime
+  });
+
+  return result;
+  } catch (error: any) {
+    // Log failed script parsing
+    addRenderLogWithTokens({
+      type: 'script-parsing',
+      resourceId: 'script-parse-' + Date.now(),
+      resourceName: '剧本解析',
+      status: 'failed',
+      model: model,
+      prompt: prompt.substring(0, 200) + '...',
+      error: error.message,
+      duration: Date.now() - startTime
+    });
+    throw error;
+  }
 };
 
 export const generateShotList = async (scriptData: ScriptData, model: string = 'gpt-5.1'): Promise<Shot[]> => {
   console.log('🎬 generateShotList 调用 - 使用模型:', model);
+  const overallStartTime = Date.now();
   
   if (!scriptData.scenes || scriptData.scenes.length === 0) {
     return [];
@@ -234,6 +265,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
   // Helper to process a single scene
   // We process per-scene to avoid token limits and parsing errors with large JSONs
   const processScene = async (scene: Scene, index: number): Promise<Shot[]> => {
+    const sceneStartTime = Date.now();
     const paragraphs = scriptData.storyParagraphs
       .filter(p => String(p.sceneRefId) === String(scene.id))
       .map(p => p.text)
@@ -294,13 +326,39 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
       // FIX: Explicitly override the sceneId to match the source scene
       // This prevents the AI from hallucinating incorrect scene IDs
       const validShots = Array.isArray(shots) ? shots : [];
-      return validShots.map(s => ({
+      const result = validShots.map(s => ({
         ...s,
         sceneId: String(scene.id) // Force String
       }));
+      
+      // Log successful shot generation for this scene
+      addRenderLogWithTokens({
+        type: 'script-parsing',
+        resourceId: `shot-gen-scene-${scene.id}-${Date.now()}`,
+        resourceName: `分镜生成 - 场景${index + 1}: ${scene.location}`,
+        status: 'success',
+        model: model,
+        prompt: prompt.substring(0, 200) + '...',
+        duration: Date.now() - sceneStartTime
+      });
+      
+      return result;
 
-    } catch (e) {
+    } catch (e: any) {
       console.error(`Failed to generate shots for scene ${scene.id}`, e);
+      
+      // Log failed shot generation for this scene
+      addRenderLogWithTokens({
+        type: 'script-parsing',
+        resourceId: `shot-gen-scene-${scene.id}-${Date.now()}`,
+        resourceName: `分镜生成 - 场景${index + 1}: ${scene.location}`,
+        status: 'failed',
+        model: model,
+        prompt: prompt.substring(0, 200) + '...',
+        error: e.message || String(e),
+        duration: Date.now() - sceneStartTime
+      });
+      
       return [];
     }
   };
