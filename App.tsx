@@ -33,6 +33,39 @@ function App() {
     }
   }, []);
 
+  // Global error handler to catch API Key errors
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      // Check if error is related to API Key
+      if (event.error?.name === 'ApiKeyError' || 
+          event.error?.message?.includes('API Key missing') ||
+          event.error?.message?.includes('antsk API Key')) {
+        console.warn('🔐 检测到 API Key 错误，正在返回登录页...');
+        handleClearKey();
+        event.preventDefault(); // Prevent default error display
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // Check if rejection is related to API Key
+      if (event.reason?.name === 'ApiKeyError' ||
+          event.reason?.message?.includes('API Key missing') ||
+          event.reason?.message?.includes('antsk API Key')) {
+        console.warn('🔐 检测到 API Key 错误，正在返回登录页...');
+        handleClearKey();
+        event.preventDefault(); // Prevent default error display
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   // Setup render log callback
   useEffect(() => {
     if (project) {

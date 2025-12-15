@@ -8,7 +8,7 @@ interface Props {
   updateProject: (updates: Partial<ProjectState> | ((prev: ProjectState) => ProjectState)) => void;
 }
 
-const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
+const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError }) => {
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   // 改为数组以支持多个任务同时进行
   const [processingTasks, setProcessingTasks] = useState<Array<{shotId: string, type: 'kf_start'|'kf_end'|'video'}>>([]);
@@ -117,6 +117,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       }));
     } catch (e: any) {
       console.error(e);
+      // Check if it's an API Key error
+      if (onApiKeyError && onApiKeyError(e)) {
+        return; // Error handled by parent
+      }
       alert(`生成失败: ${e.message}`);
     } finally {
       // 从处理列表中移除该任务
@@ -198,6 +202,10 @@ Technical Requirements:
       }));
     } catch (e: any) {
       console.error(e);
+      // Check if it's an API Key error
+      if (onApiKeyError && onApiKeyError(e)) {
+        return; // Error handled by parent
+      }
       alert(`视频生成失败: ${e.message}`);
     } finally {
       setProcessingTasks(prev => prev.filter(t => !(t.shotId === shot.id && t.type === 'video')));
@@ -266,8 +274,13 @@ Technical Requirements:
 
              updateProject({ shots: currentShots });
 
-          } catch (e) {
+          } catch (e: any) {
              console.error(`Failed to generate for shot ${shot.id}`, e);
+             // Check if it's an API Key error
+             if (onApiKeyError && onApiKeyError(e)) {
+               setBatchProgress(null);
+               return; // Error handled by parent
+             }
           }
       }
 

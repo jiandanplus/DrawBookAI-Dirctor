@@ -1,6 +1,14 @@
 import { ScriptData, Shot, Character, Scene } from "../types";
 import { addRenderLogWithTokens } from './renderLogService';
 
+// Custom error class for API Key issues
+export class ApiKeyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ApiKeyError';
+  }
+}
+
 // Module-level variable to store the key at runtime
 let runtimeApiKey: string = process.env.API_KEY || "";
 
@@ -10,7 +18,7 @@ export const setGlobalApiKey = (key: string) => {
 
 // Helper to check API key is available
 const checkApiKey = () => {
-  if (!runtimeApiKey) throw new Error("API Key missing. Please configure your antsk API Key.");
+  if (!runtimeApiKey) throw new ApiKeyError("API Key missing. Please configure your antsk API Key.");
   return runtimeApiKey;
 };
 

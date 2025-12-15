@@ -8,7 +8,7 @@ interface Props {
   updateProject: (updates: Partial<ProjectState> | ((prev: ProjectState) => ProjectState)) => void;
 }
 
-const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
+const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError }) => {
   const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
@@ -75,8 +75,12 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         updateProject({ scriptData: newData });
       }
 
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      // Check if it's an API Key error
+      if (onApiKeyError && onApiKeyError(e)) {
+        return; // Error handled by parent
+      }
     } finally {
       setGeneratingIds(prev => {
         const next = new Set(prev);
@@ -157,8 +161,12 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           if (v) v.referenceImage = imageUrl;
 
           updateProject({ scriptData: newData });
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          // Check if it's an API Key error
+          if (onApiKeyError && onApiKeyError(e)) {
+            return; // Error handled by parent
+          }
           alert("Variation generation failed");
       } finally {
           setGeneratingIds(prev => {

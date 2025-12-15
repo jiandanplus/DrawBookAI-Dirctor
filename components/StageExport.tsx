@@ -7,7 +7,7 @@ interface Props {
   project: ProjectState;
 }
 
-const StageExport: React.FC<Props> = ({ project }) => {
+const StageExport: React.FC<Props> = ({ project, onApiKeyError }) => {
   const completedShots = project.shots.filter(s => s.interval?.videoUrl);
   const totalShots = project.shots.length;
   const progress = totalShots > 0 ? Math.round((completedShots.length / totalShots) * 100) : 0;
