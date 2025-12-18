@@ -175,10 +175,28 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     // Use selected model or default to Veo
     const selectedModel = shot.videoModel || 'sora-2';
     
-    // For Sora-2, enhance prompt with detailed requirements
+    // Get project language for prompt generation
+    const projectLanguage = project.language || project.scriptData?.language || '中文';
+    
+    // Build video prompt based on model and language
     let videoPrompt = shot.actionSummary;
+    
     if (selectedModel === 'sora-2') {
-      // 当有结束帧时，明确指示要实现帧间过渡
+      // 根据项目语言构建提示词
+      if (projectLanguage === '中文') {
+        videoPrompt = `从第一张图片（起始帧）到第二张图片（结束帧）生成平滑过渡的视频。
+
+动作描述：${shot.actionSummary}
+
+技术要求：
+- 关键：视频必须从第一张图片的精确构图开始，逐渐过渡到第二张图片的精确构图结束
+- 画面比例：16:9 宽屏横向格式
+- 镜头运动：${shot.cameraMovement}
+- 过渡：确保起始帧和结束帧之间自然流畅的运动，避免跳跃或不连续
+- 视觉风格：电影质感，全程保持一致的光照和色调
+- 细节：保持两帧之间角色和场景的连续性和一致性
+- 语言：配音和字幕使用中文`;
+      } else {
         videoPrompt = `Generate a smooth transition video from the first image (start frame) to the second image (end frame).
 
 Action Description: ${shot.actionSummary}
@@ -189,8 +207,16 @@ Technical Requirements:
 - Camera Movement: ${shot.cameraMovement}
 - Transition: Ensure natural and fluid motion between start and end frames, avoid jumps or discontinuities
 - Visual Style: Cinematic quality with consistent lighting and color tone throughout
-- Details: Maintain character and scene continuity and consistency between both frames`;
-    
+- Details: Maintain character and scene continuity and consistency between both frames
+- Language: Use ${projectLanguage} for voiceover and subtitles`;
+      }
+    } else {
+      // For Veo model, add language instruction to the action summary
+      if (projectLanguage === '中文') {
+        videoPrompt = `${shot.actionSummary}\n\n镜头运动：${shot.cameraMovement}\n配音语言：使用中文配音`;
+      } else {
+        videoPrompt = `${shot.actionSummary}\n\nCamera Movement: ${shot.cameraMovement}\nVoiceover Language: Use ${projectLanguage} for voiceover`;
+      }
     }
     
     const intervalId = shot.interval?.id || `int-${shot.id}-${Date.now()}`;

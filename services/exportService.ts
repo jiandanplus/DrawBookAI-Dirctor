@@ -24,12 +24,20 @@ async function loadFFmpeg(onProgress?: (progress: number) => void): Promise<FFmp
     }
   });
 
-  // 加载 FFmpeg Core（从 CDN）
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
+  // 加载 FFmpeg Core（从本地文件）
+  const baseURL = '/ffmpeg';
+  
+  try {
+    console.log('[FFmpeg] 正在从本地加载 FFmpeg Core...');
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
+    console.log('[FFmpeg] FFmpeg Core 加载成功');
+  } catch (error) {
+    console.error('[FFmpeg] 加载失败:', error);
+    throw new Error(`无法加载 FFmpeg Core: ${error instanceof Error ? error.message : '未知错误'}`);
+  }
 
   ffmpegInstance = ffmpeg;
   return ffmpeg;
