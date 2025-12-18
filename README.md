@@ -67,10 +67,26 @@
 ## 快速开始
 
 1.  **配置密钥**: 启动应用，输入 antsk API Key。[**立即购买**](https://api.antsk.cn)
-2.  **故事输入**: 在 Phase 01 输入你的故事创意，点击“生成分镜脚本”。
+2.  **故事输入**: 在 Phase 01 输入你的故事创意，点击"生成分镜脚本"。
 3.  **美术设定**: 进入 Phase 02，生成主角定妆照和核心场景图。
 4.  **分镜制作**: 进入 Phase 03，逐个生成镜头的关键帧。
 5.  **动效生成**: 确认关键帧无误后，批量生成视频片段。
+
+## SEO 优化
+
+本项目已进行全面的 SEO 优化，包括：
+- ✅ 完整的 Meta 标签（标题、描述、关键词）
+- ✅ Open Graph 标签（社交媒体分享优化）
+- ✅ Twitter Card 标签
+- ✅ 结构化数据（Schema.org JSON-LD）
+- ✅ robots.txt 和 sitemap.xml
+- ✅ SEO 自动检查工具
+
+**验证 SEO 配置**: 访问 `http://localhost:3000/seo-check.html`
+
+详细文档：
+- [SEO 优化报告](./docs/SEO优化报告.md) - 完整的优化说明和预期效果
+- [SEO 快速指南](./docs/SEO快速指南.md) - 验证和使用指南
 
 ---
 *Built for Creators, by BigBanana.*

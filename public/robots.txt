@@ -1,0 +1,29 @@
+# BigBanana AI Director - Robots.txt
+# https://bigbanana.tree456.com/robots.txt
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /node_modules/
+Disallow: /*.json$
+
+# Sitemap
+Sitemap: https://bigbanana.tree456.com/sitemap.xml
+
+# Crawl-delay for specific bots (optional)
+User-agent: Googlebot
+Crawl-delay: 0
+
+User-agent: Bingbot
+Crawl-delay: 0
+
+User-agent: Baiduspider
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+

@@ -21,10 +21,24 @@ function App() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string>('');
   const [showQrCode, setShowQrCode] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
   const hideStatusTimeoutRef = useRef<any>(null);
+
+  // Detect mobile device on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024;
+      setIsMobile(isMobileDevice);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load API Key from localStorage on mount
   useEffect(() => {
@@ -203,6 +217,31 @@ function App() {
 
   // API Key Entry Screen (Industrial Design)
   if (!apiKey) {
+    // Mobile Warning Screen
+    if (isMobile) {
+      return (
+        <div className="h-screen bg-[#050505] flex items-center justify-center p-6">
+          <div className="max-w-md text-center space-y-6">
+            <img src={logoImg} alt="Logo" className="w-20 h-20 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-2">BigBanana AI Director</h1>
+            <div className="bg-[#0A0A0A] border border-zinc-800 rounded-xl p-8">
+              <p className="text-zinc-400 text-base leading-relaxed mb-4">
+                为了获得最佳体验，请使用 PC 端浏览器访问。
+              </p>
+              <p className="text-zinc-600 text-sm">
+                本应用需要较大的屏幕空间和桌面级浏览器环境才能正常运行。
+              </p>
+            </div>
+            <div className="text-xs text-zinc-700">
+              <a href="https://bigbanana.tree456.com/" target="_blank" rel="noreferrer" className="hover:text-indigo-400 transition-colors">
+                访问产品首页了解更多
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="h-screen bg-[#050505] flex relative overflow-hidden">
         {/* Background Accents */}
@@ -231,7 +270,7 @@ function App() {
                   <div className="flex-1">
                     <h3 className="text-white font-bold text-lg mb-2">关键帧驱动生成</h3>
                     <p className="text-zinc-400 text-sm leading-relaxed">
-                      先生成精准的起始帧和结束帧，利用 Veo 模型在两帧之间生成平滑视频过渡，摆脱传统 Text-to-Video 的随机性
+                      先生成精准的起始帧和结束帧，利用 Veo/Sora-2 模型在两帧之间生成平滑视频过渡，摆脱传统 Text-to-Video 的随机性
                     </p>
                   </div>
                 </div>
@@ -283,7 +322,7 @@ function App() {
         </div>
 
         {/* Right Side - Login Form */}
-        <div className="w-[480px] flex flex-col items-center justify-center p-12 bg-[#0A0A0A]/50 backdrop-blur-xl border-l border-zinc-800/50 relative z-10">
+        <div className="w-[560px] flex flex-col items-center justify-center p-12 bg-[#0A0A0A]/50 backdrop-blur-xl border-l border-zinc-800/50 relative z-10">
           <div className="w-full max-w-md bg-[#0A0A0A] border border-zinc-800 p-8 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300">
             
             <div className="flex items-center gap-3 mb-8 border-b border-zinc-900 pb-6">
@@ -388,6 +427,32 @@ function App() {
 
   // Dashboard View
   if (!project) {
+    // Mobile Warning for Dashboard
+    if (isMobile) {
+      return (
+        <div className="h-screen bg-[#050505] flex items-center justify-center p-6">
+          <div className="max-w-md text-center space-y-6">
+            <img src={logoImg} alt="Logo" className="w-20 h-20 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-2">BigBanana AI Director</h1>
+            <div className="bg-[#0A0A0A] border border-zinc-800 rounded-xl p-8">
+              <p className="text-zinc-400 text-base leading-relaxed mb-4">
+                为了获得最佳体验，请使用 PC 端浏览器访问。
+              </p>
+              <p className="text-zinc-600 text-sm">
+                本应用需要较大的屏幕空间和桌面级浏览器环境才能正常运行。
+              </p>
+            </div>
+            <button 
+              onClick={handleClearKey}
+              className="text-xs text-zinc-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
        <>
          <button onClick={handleClearKey} className="fixed top-4 right-4 z-50 text-[10px] text-zinc-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest">
@@ -429,9 +494,20 @@ function App() {
         )}
       </main>
       
-      <div className="lg:hidden fixed inset-0 bg-black z-[100] flex items-center justify-center p-8 text-center">
-        <p className="text-zinc-500">为了获得最佳体验，请使用桌面浏览器访问。</p>
-      </div>
+      {/* Mobile Warning Overlay for Workspace */}
+      {isMobile && (
+        <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center p-6">
+          <div className="max-w-md text-center space-y-4">
+            <img src={logoImg} alt="Logo" className="w-16 h-16 mx-auto mb-2" />
+            <h2 className="text-xl font-bold text-white">请使用 PC 端访问</h2>
+            <div className="bg-[#0A0A0A] border border-zinc-800 rounded-xl p-6">
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                为了获得最佳体验，请使用桌面浏览器访问本应用。
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
