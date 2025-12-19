@@ -8,10 +8,6 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        headers: {
-          'Cross-Origin-Opener-Policy': 'same-origin',
-          'Cross-Origin-Embedder-Policy': 'require-corp',
-        },
       },
       plugins: [react()],
       define: {
@@ -21,18 +17,6 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
-        }
-      },
-      optimizeDeps: {
-        exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util']
-      },
-      build: {
-        rollupOptions: {
-          output: {
-            manualChunks: {
-              'ffmpeg-vendor': ['@ffmpeg/ffmpeg', '@ffmpeg/util']
-            }
-          }
         }
       }
     };

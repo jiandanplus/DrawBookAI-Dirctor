@@ -1,65 +1,18 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile } from '@ffmpeg/util';
 import { ProjectState } from '../types';
 
-let ffmpegInstance: FFmpeg | null = null;
-
 /**
- * 初始化 FFmpeg 实例（懒加载）
+ * 下载单个文件并转换为 Blob
  */
-async function loadFFmpeg(onProgress?: (progress: number) => void): Promise<FFmpeg> {
-  if (ffmpegInstance) {
-    return ffmpegInstance;
+async function downloadFile(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`下载失败: ${response.statusText}`);
   }
-
-  const ffmpeg = new FFmpeg();
-  
-  ffmpeg.on('log', ({ message }) => {
-    console.log('[FFmpeg]', message);
-  });
-
-  ffmpeg.on('progress', ({ progress }) => {
-    if (onProgress) {
-      onProgress(Math.round(progress * 100));
-    }
-  });
-
-  // 加载 FFmpeg Core（从国内 CDN）
-  try {
-    console.log('[FFmpeg] 正在从 CDN 加载 FFmpeg Core...');
-    
-    // 使用国内 BootCDN（速度快且稳定）
-    const baseURL = 'https://cdn.bootcdn.net/ajax/libs/ffmpeg-core/0.12.10/umd';
-    
-    await ffmpeg.load({
-      coreURL: `${baseURL}/ffmpeg-core.js`,
-      wasmURL: `${baseURL}/ffmpeg-core.wasm`,
-    });
-    
-    console.log('[FFmpeg] FFmpeg Core 加载成功');
-  } catch (error) {
-    console.error('[FFmpeg] 从 BootCDN 加载失败，尝试备用 CDN...', error);
-    
-    // 备用方案：使用 Staticfile CDN
-    try {
-      const backupURL = 'https://cdn.staticfile.org/ffmpeg.wasm-core/0.12.6';
-      await ffmpeg.load({
-        coreURL: `${backupURL}/ffmpeg-core.js`,
-        wasmURL: `${backupURL}/ffmpeg-core.wasm`,
-      });
-      console.log('[FFmpeg] 从备用 CDN 加载成功');
-    } catch (backupError) {
-      console.error('[FFmpeg] 所有 CDN 加载失败:', backupError);
-      throw new Error(`无法加载 FFmpeg Core: ${backupError instanceof Error ? backupError.message : '未知错误'}`);
-    }
-  }
-
-  ffmpegInstance = ffmpeg;
-  return ffmpeg;
+  return await response.blob();
 }
 
 /**
- * 合并多个视频片段为一个 MP4 文件并下载
+ * 下载所有视频片段并打包为 ZIP 文件
  */
 export async function downloadMasterVideo(
   project: ProjectState,
@@ -73,77 +26,55 @@ export async function downloadMasterVideo(
       throw new Error('没有可导出的视频片段');
     }
 
-    onProgress?.('准备中...', 0);
+    onProgress?.('正在加载 ZIP 库...', 0);
+    
+    // 2. 动态导入 JSZip
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
 
-    // 2. 加载 FFmpeg
-    const ffmpeg = await loadFFmpeg((prog) => {
-      onProgress?.('加载 FFmpeg...', Math.min(prog, 15));
-    });
+    onProgress?.('下载视频片段...', 10);
 
-    onProgress?.('下载视频片段...', 20);
-
-    // 3. 下载所有视频文件到 FFmpeg 虚拟文件系统
-    const videoFiles: string[] = [];
+    // 3. 下载所有视频文件并添加到 ZIP
     for (let i = 0; i < completedShots.length; i++) {
       const shot = completedShots[i];
       const videoUrl = shot.interval!.videoUrl!;
-      const fileName = `video_${i}.mp4`;
+      const shotNum = String(i + 1).padStart(3, '0');
+      const fileName = `shot_${shotNum}.mp4`;
       
       try {
-        const videoData = await fetchFile(videoUrl);
-        await ffmpeg.writeFile(fileName, videoData);
-        videoFiles.push(fileName);
+        const videoBlob = await downloadFile(videoUrl);
+        zip.file(fileName, videoBlob);
         
-        const downloadProgress = 20 + Math.round((i + 1) / completedShots.length * 30);
-        onProgress?.('下载视频片段...', downloadProgress);
+        const progress = 10 + Math.round((i + 1) / completedShots.length * 75);
+        onProgress?.(`下载中 (${i + 1}/${completedShots.length})...`, progress);
       } catch (err) {
-        console.error(`下载视频片段 ${i} 失败:`, err);
-        throw new Error(`下载视频片段 ${i + 1} 失败`);
+        console.error(`下载视频片段 ${i + 1} 失败:`, err);
+        // 继续下载其他文件，不中断整个流程
       }
     }
 
-    // 4. 创建 FFmpeg concat 文件列表
-    const concatFileContent = videoFiles.map(f => `file '${f}'`).join('\n');
-    await ffmpeg.writeFile('concat_list.txt', new TextEncoder().encode(concatFileContent));
+    onProgress?.('正在生成 ZIP 文件...', 85);
 
-    onProgress?.('合并视频中...', 55);
+    // 4. 生成 ZIP 文件
+    const zipBlob = await zip.generateAsync(
+      { type: 'blob' },
+      (metadata) => {
+        const progress = 85 + Math.round(metadata.percent / 10);
+        onProgress?.('正在压缩...', progress);
+      }
+    );
 
-    // 5. 使用 FFmpeg concat 协议合并视频
-    await ffmpeg.exec([
-      '-f', 'concat',
-      '-safe', '0',
-      '-i', 'concat_list.txt',
-      '-c', 'copy',  // 直接拷贝流，不重新编码（速度快）
-      'output.mp4'
-    ]);
+    onProgress?.('准备下载...', 95);
 
-    onProgress?.('准备下载...', 90);
-
-    // 6. 读取合并后的视频
-    const outputData = await ffmpeg.readFile('output.mp4');
-    // 创建 Blob（强制类型转换以解决 TypeScript 类型推断问题）
-    const blob = new Blob([outputData as BlobPart], { type: 'video/mp4' });
-
-    // 7. 触发浏览器下载
-    const url = URL.createObjectURL(blob);
+    // 5. 触发浏览器下载
+    const url = URL.createObjectURL(zipBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${project.scriptData?.title || project.title || 'master'}_master.mp4`;
+    a.download = `${project.scriptData?.title || project.title || 'master'}_videos.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-    // 8. 清理 FFmpeg 文件系统
-    for (const file of videoFiles) {
-      try {
-        await ffmpeg.deleteFile(file);
-      } catch (e) {
-        // 忽略清理错误
-      }
-    }
-    await ffmpeg.deleteFile('concat_list.txt');
-    await ffmpeg.deleteFile('output.mp4');
 
     onProgress?.('完成！', 100);
   } catch (error) {
@@ -160,17 +91,6 @@ export function estimateTotalDuration(project: ProjectState): number {
   return project.shots.reduce((acc, shot) => {
     return acc + (shot.interval?.duration || 10);
   }, 0);
-}
-
-/**
- * 下载单个文件并转换为 Blob
- */
-async function downloadFile(url: string): Promise<Blob> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`下载失败: ${response.statusText}`);
-  }
-  return await response.blob();
 }
 
 /**
