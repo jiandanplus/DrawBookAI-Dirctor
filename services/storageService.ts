@@ -67,14 +67,90 @@ export const getAllProjectsMetadata = async (): Promise<ProjectState[]> => {
   });
 };
 
+/**
+ * 从IndexedDB中删除项目及其所有关联资源
+ * 由于所有媒体资源（图片、视频）都以Base64格式存储在项目对象内部，
+ * 删除项目记录时会自动清理所有相关资源：
+ * - 角色参考图 (Character.referenceImage)
+ * - 角色变体参考图 (CharacterVariation.referenceImage)
+ * - 场景参考图 (Scene.referenceImage)
+ * - 关键帧图像 (Keyframe.imageUrl)
+ * - 视频片段 (VideoInterval.videoUrl)
+ * - 渲染日志 (RenderLog[])
+ * @param id - 项目ID
+ */
 export const deleteProjectFromDB = async (id: string): Promise<void> => {
+  console.log(`🗑️ 开始删除项目: ${id}`);
+  
   const db = await openDB();
+  
+  // 先获取项目信息以便记录删除的资源统计
+  let project: ProjectState | null = null;
+  try {
+    project = await loadProjectFromDB(id);
+  } catch (e) {
+    console.warn('无法加载项目信息，直接删除');
+  }
+  
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     const request = store.delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    
+    request.onsuccess = () => {
+      if (project) {
+        // 统计被删除的资源
+        let resourceCount = {
+          characters: 0,
+          characterVariations: 0,
+          scenes: 0,
+          keyframes: 0,
+          videos: 0,
+          renderLogs: project.renderLogs?.length || 0
+        };
+        
+        if (project.scriptData) {
+          resourceCount.characters = project.scriptData.characters.filter(c => c.referenceImage).length;
+          resourceCount.scenes = project.scriptData.scenes.filter(s => s.referenceImage).length;
+          
+          // 统计角色变体
+          project.scriptData.characters.forEach(c => {
+            if (c.variations) {
+              resourceCount.characterVariations += c.variations.filter(v => v.referenceImage).length;
+            }
+          });
+        }
+        
+        if (project.shots) {
+          project.shots.forEach(shot => {
+            if (shot.keyframes) {
+              resourceCount.keyframes += shot.keyframes.filter(kf => kf.imageUrl).length;
+            }
+            if (shot.interval?.videoUrl) {
+              resourceCount.videos++;
+            }
+          });
+        }
+        
+        console.log(`✅ 项目已删除: ${project.title}`);
+        console.log(`📊 清理的资源统计:`, resourceCount);
+        console.log(`   - 角色参考图: ${resourceCount.characters}个`);
+        console.log(`   - 角色变体图: ${resourceCount.characterVariations}个`);
+        console.log(`   - 场景参考图: ${resourceCount.scenes}个`);
+        console.log(`   - 关键帧图像: ${resourceCount.keyframes}个`);
+        console.log(`   - 视频片段: ${resourceCount.videos}个`);
+        console.log(`   - 渲染日志: ${resourceCount.renderLogs}条`);
+      } else {
+        console.log(`✅ 项目已删除: ${id}`);
+      }
+      
+      resolve();
+    };
+    
+    request.onerror = () => {
+      console.error(`❌ 删除项目失败: ${id}`, request.error);
+      reject(request.error);
+    };
   });
 };
 

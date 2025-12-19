@@ -45,12 +45,23 @@ const Dashboard: React.FC<Props> = ({ onOpenProject }) => {
 
   const confirmDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    
+    // 获取项目名称用于提示
+    const project = projects.find(p => p.id === id);
+    const projectName = project?.title || '未命名项目';
+    
     try {
+        console.log('📋 准备删除项目及所有关联资源...');
         await deleteProjectFromDB(id);
+        console.log('💾 重新加载项目列表...');
         await loadProjects();
+        console.log(`✅ 项目 "${projectName}" 已成功删除`);
+        
+        // 可选：添加成功提示（如果不想打扰用户可以注释掉）
+        // alert(`项目 "${projectName}" 已删除`);
     } catch (error) {
-        console.error("Delete failed", error);
-        alert("删除项目失败");
+        console.error("❌ 删除项目失败:", error);
+        alert(`删除项目失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查浏览器控制台查看详细信息`);
     } finally {
         setDeleteConfirmId(null);
     }
@@ -114,9 +125,16 @@ const Dashboard: React.FC<Props> = ({ onOpenProject }) => {
                         <div className="w-10 h-10 bg-red-900/20 flex items-center justify-center rounded-full">
                            <AlertTriangle className="w-5 h-5 text-red-500" />
                         </div>
-                        <div className="text-center">
-                            <p className="text-white font-bold text-xs uppercase tracking-widest">确认删除？</p>
-                            <p className="text-zinc-500 text-[10px] mt-1 font-mono">此操作无法撤销。</p>
+                        <div className="text-center space-y-2">
+                            <p className="text-white font-bold text-xs uppercase tracking-widest">确认删除项目？</p>
+                            <p className="text-zinc-500 text-[10px] font-mono">此操作无法撤销</p>
+                            <div className="text-[9px] text-zinc-600 space-y-1 pt-2 border-t border-zinc-900">
+                              <p>将同时删除以下所有资源：</p>
+                              <p className="text-zinc-700 font-mono">· 角色和场景参考图</p>
+                              <p className="text-zinc-700 font-mono">· 所有关键帧图像</p>
+                              <p className="text-zinc-700 font-mono">· 所有生成的视频片段</p>
+                              <p className="text-zinc-700 font-mono">· 渲染历史记录</p>
+                            </div>
                         </div>
                         <div className="flex gap-2 w-full pt-2">
                             <button 
@@ -129,7 +147,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject }) => {
                                 onClick={(e) => confirmDelete(e, proj.id)}
                                 className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[10px] font-bold uppercase tracking-wider transition-colors border border-red-900/30"
                             >
-                                删除
+                                永久删除
                             </button>
                         </div>
                     </div>
