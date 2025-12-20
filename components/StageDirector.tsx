@@ -152,6 +152,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
   const [editingKeyframePrompt, setEditingKeyframePrompt] = useState('');
   const [editingVideoPrompt, setEditingVideoPrompt] = useState(false);
   const [editingVideoPromptText, setEditingVideoPromptText] = useState('');
+  const [editingActionSummary, setEditingActionSummary] = useState(false);
+  const [editingActionSummaryText, setEditingActionSummaryText] = useState('');
 
   const activeShotIndex = project.shots.findIndex(s => s.id === activeShotId);
   const activeShot = project.shots[activeShotIndex];
@@ -942,6 +944,16 @@ Technical Requirements:
                            <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
                                <Film className="w-4 h-4 text-zinc-500" />
                                <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">叙事动作 (Action & Dialogue)</h4>
+                               <button 
+                                   onClick={() => {
+                                       setEditingActionSummary(true);
+                                       setEditingActionSummaryText(activeShot.actionSummary);
+                                   }}
+                                   className="p-1 text-yellow-400 hover:text-white transition-colors ml-auto"
+                                   title="编辑叙事动作"
+                               >
+                                   <Edit2 className="w-3 h-3" />
+                               </button>
                            </div>
                            
                            <div className="space-y-3">
@@ -1180,6 +1192,65 @@ Technical Requirements:
               </div>
           )}
       </div>
+
+      {/* 编辑叙事动作弹窗 */}
+      {editingActionSummary && (
+          <div 
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+              onClick={() => setEditingActionSummary(false)}
+          >
+              <div 
+                  className="bg-[#1A1A1A] border border-zinc-700 rounded-xl p-6 max-w-2xl w-full space-y-4 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+              >
+                  <div className="flex items-center justify-between">
+                      <h3 className="text-white font-bold flex items-center gap-2">
+                          <Edit2 className="w-4 h-4 text-indigo-400" />
+                          编辑叙事动作
+                      </h3>
+                      <button 
+                          onClick={() => setEditingActionSummary(false)}
+                          className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors"
+                      >
+                          <X className="w-4 h-4" />
+                      </button>
+                  </div>
+                  
+                  <textarea
+                      value={editingActionSummaryText}
+                      onChange={(e) => setEditingActionSummaryText(e.target.value)}
+                      className="w-full h-64 bg-black text-white border border-zinc-700 rounded-lg p-4 text-sm outline-none focus:border-indigo-500 transition-colors resize-none"
+                      placeholder="描述镜头的动作和内容..."
+                  />
+                  
+                  <div className="flex justify-end gap-3">
+                      <button
+                          onClick={() => setEditingActionSummary(false)}
+                          className="px-4 py-2 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 rounded-lg text-sm font-bold transition-colors"
+                      >
+                          取消
+                      </button>
+                      <button
+                          onClick={() => {
+                              if (!activeShot) return;
+                              
+                              updateShot(activeShot.id, (s) => ({
+                                  ...s,
+                                  actionSummary: editingActionSummaryText
+                              }));
+                              
+                              setEditingActionSummary(false);
+                              setEditingActionSummaryText('');
+                          }}
+                          className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-500 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
+                      >
+                          <Check className="w-4 h-4" />
+                          保存
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* 编辑关键帧提示词弹窗 */}
       {editingKeyframeId && (
