@@ -18,6 +18,7 @@ import EditModal from './EditModal';
 import ShotCard from './ShotCard';
 import ShotWorkbench from './ShotWorkbench';
 import ImagePreviewModal from './ImagePreviewModal';
+import { useAlert } from '../GlobalAlert';
 
 interface Props {
   project: ProjectState;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError }) => {
+  const { showAlert } = useAlert();
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number, message: string} | null>(null);
   const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
@@ -130,7 +132,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
       }));
       
       if (onApiKeyError && onApiKeyError(e)) return;
-      alert(`生成失败: ${e.message}`);
+      showAlert(`生成失败: ${e.message}`, { type: 'error' });
     }
   };
 
@@ -147,7 +149,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
       if (!file) return;
       
       if (!file.type.startsWith('image/')) {
-        alert('请选择图片文件！');
+        showAlert('请选择图片文件！', { type: 'warning' });
         return;
       }
       
@@ -165,7 +167,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
           })
         }));
       } catch (error) {
-        alert('读取文件失败！');
+        showAlert('读取文件失败！', { type: 'error' });
       }
     };
     
@@ -179,7 +181,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     const sKf = shot.keyframes?.find(k => k.type === 'start');
     const eKf = shot.keyframes?.find(k => k.type === 'end');
 
-    if (!sKf?.imageUrl) return alert("请先生成起始帧！");
+    if (!sKf?.imageUrl) return showAlert("请先生成起始帧！", { type: 'warning' });
 
     const selectedModel = shot.videoModel || DEFAULTS.videoModel;
     const projectLanguage = project.language || project.scriptData?.language || '中文';
@@ -235,7 +237,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
       }));
       
       if (onApiKeyError && onApiKeyError(e)) return;
-      alert(`视频生成失败: ${e.message}`);
+      showAlert(`视频生成失败: ${e.message}`, { type: 'error' });
     }
   };
 
@@ -249,7 +251,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'end');
     
     if (!previousEndKf?.imageUrl) {
-      alert("上一个镜头还没有生成结束帧");
+      showAlert("上一个镜头还没有生成结束帧", { type: 'warning' });
       return;
     }
     
@@ -353,7 +355,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     
     // 检查是否有首帧和尾帧
     if (!startKf?.visualPrompt && !endKf?.visualPrompt) {
-      alert('请先生成或编辑首帧和尾帧的提示词，以便AI更好地理解场景');
+      showAlert('请先生成或编辑首帧和尾帧的提示词，以便AI更好地理解场景', { type: 'warning' });
       return;
     }
     
@@ -377,7 +379,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     } catch (e: any) {
       console.error('AI动作生成失败:', e);
       if (onApiKeyError && onApiKeyError(e)) return;
-      alert(`AI动作生成失败: ${e.message}`);
+      showAlert(`AI动作生成失败: ${e.message}`, { type: 'error' });
     } finally {
       setIsAIGenerating(false);
     }

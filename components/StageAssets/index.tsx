@@ -16,6 +16,7 @@ import ImagePreviewModal from './ImagePreviewModal';
 import CharacterCard from './CharacterCard';
 import SceneCard from './SceneCard';
 import WardrobeModal from './WardrobeModal';
+import { useAlert } from '../GlobalAlert';
 
 interface Props {
   project: ProjectState;
@@ -24,6 +25,7 @@ interface Props {
 }
 
 const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError }) => {
+  const { showAlert } = useAlert();
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -188,7 +190,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError })
         updateProject({ scriptData: newData });
       }
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message, { type: 'error' });
     }
   };
 
@@ -208,7 +210,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError })
         updateProject({ scriptData: newData });
       }
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message, { type: 'error' });
     }
   };
 
@@ -318,7 +320,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError })
       if (onApiKeyError && onApiKeyError(e)) {
         return;
       }
-      alert("Variation generation failed");
+      showAlert("Variation generation failed", { type: 'error' });
     }
   };
 
@@ -339,7 +341,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError })
         updateProject({ scriptData: newData });
       }
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message, { type: 'error' });
     }
   };
 

@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2, Loader2, Folder, ChevronRight, Calendar, AlertTriangle, X } from 'lucide-react';
 import { ProjectState } from '../types';
 import { getAllProjectsMetadata, createNewProjectState, deleteProjectFromDB } from '../services/storageService';
+import { useAlert } from './GlobalAlert';
 
 interface Props {
   onOpenProject: (project: ProjectState) => void;
 }
 
 const Dashboard: React.FC<Props> = ({ onOpenProject }) => {
+  const { showAlert } = useAlert();
   const [projects, setProjects] = useState<ProjectState[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -61,7 +63,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject }) => {
         // alert(`项目 "${projectName}" 已删除`);
     } catch (error) {
         console.error("❌ 删除项目失败:", error);
-        alert(`删除项目失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查浏览器控制台查看详细信息`);
+        showAlert(`删除项目失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查浏览器控制台查看详细信息`, { type: 'error' });
     } finally {
         setDeleteConfirmId(null);
     }

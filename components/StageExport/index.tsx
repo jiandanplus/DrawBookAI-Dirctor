@@ -16,12 +16,14 @@ import ActionButtons from './ActionButtons';
 import SecondaryOptions from './SecondaryOptions';
 import VideoPlayerModal from './VideoPlayerModal';
 import RenderLogsModal from './RenderLogsModal';
+import { useAlert } from '../GlobalAlert';
 
 interface Props {
   project: ProjectState;
 }
 
 const StageExport: React.FC<Props> = ({ project }) => {
+  const { showAlert } = useAlert();
   const completedShots = getCompletedShots(project);
   const progress = calculateProgress(project);
   const estimatedDuration = calculateEstimatedDuration(project);
@@ -124,7 +126,7 @@ const StageExport: React.FC<Props> = ({ project }) => {
       }, 2000);
     } catch (error) {
       console.error('Download failed:', error);
-      alert(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      showAlert(`导出失败: ${error instanceof Error ? error.message : '未知错误'}`, { type: 'error' });
       setIsDownloading(false);
       setDownloadPhase('');
       setDownloadProgress(0);
@@ -136,7 +138,7 @@ const StageExport: React.FC<Props> = ({ project }) => {
     if (isDownloadingAssets) return;
     
     if (!hasDownloadableAssets(project)) {
-      alert('没有可下载的资源。请先生成角色、场景或镜头素材。');
+      showAlert('没有可下载的资源。请先生成角色、场景或镜头素材。', { type: 'warning' });
       return;
     }
     
@@ -156,7 +158,7 @@ const StageExport: React.FC<Props> = ({ project }) => {
       }, 2000);
     } catch (error) {
       console.error('Assets download failed:', error);
-      alert(`下载源资源失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      showAlert(`下载源资源失败: ${error instanceof Error ? error.message : '未知错误'}`, { type: 'error' });
       setIsDownloadingAssets(false);
       setAssetsPhase('');
       setAssetsProgress(0);
