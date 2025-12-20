@@ -131,7 +131,7 @@ const ShotWorkbench: React.FC<ShotWorkbenchProps> = ({
             </button>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[200px] overflow-y-auto custom-scrollbar">
             <div className="bg-[#141414] p-4 rounded-lg border border-zinc-800">
               <p className="text-zinc-200 text-sm leading-relaxed">{shot.actionSummary}</p>
             </div>
