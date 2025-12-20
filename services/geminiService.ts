@@ -634,16 +634,28 @@ export const generateImage = async (prompt: string, referenceImages: string[] = 
     let finalPrompt = prompt;
     if (referenceImages.length > 0) {
       finalPrompt = `
+      ⚠️⚠️⚠️ CRITICAL REQUIREMENTS - CHARACTER CONSISTENCY ⚠️⚠️⚠️
+      
       Reference Images Information:
-      - The FIRST image provided is the Scene/Environment reference.
-      - Any subsequent images are Character references (e.g. Base Look, or specific Variation).
+      - The FIRST image is the Scene/Environment reference.
+      - Any subsequent images are Character references (Base Look or Variation).
       
       Task:
       Generate a cinematic shot matching this prompt: "${prompt}".
       
-      Requirements:
-      - STRICTLY maintain the visual style, lighting, and environment from the scene reference.
-      - If characters are present, they MUST resemble the character reference images provided.
+      ⚠️ ABSOLUTE REQUIREMENTS (NON-NEGOTIABLE):
+      1. Scene Consistency:
+         - STRICTLY maintain the visual style, lighting, and environment from the scene reference.
+      
+      2. Character Consistency - HIGHEST PRIORITY:
+         If characters are present in the prompt, they MUST be IDENTICAL to the character reference images:
+         • Facial Features: Eyes (color, shape, size), nose structure, mouth shape, facial contours must be EXACTLY the same
+         • Hairstyle & Hair Color: Length, color, texture, and style must be PERFECTLY matched
+         • Clothing & Outfit: Style, color, material, and accessories must be IDENTICAL
+         • Body Type: Height, build, proportions must remain consistent
+         
+      ⚠️ DO NOT create variations or interpretations of the character - STRICT REPLICATION ONLY!
+      ⚠️ Character appearance consistency is THE MOST IMPORTANT requirement!
     `;
     }
 
@@ -1479,8 +1491,13 @@ ${frameType === 'start' ? '建立清晰的初始状态、起始姿态、为后�
 - 大气效果: 体积光、雾气、粒子、天气效果
 
 ### 3. 角色要求 (Character Details) - 如果有角色
-- 面部表情: 微表情、情绪真实度、眼神方向
-- 肢体语言: 自然的身体姿态、重心分布、肌肉张力
+⚠️ 最高优先级: 如果提供了角色参考图,必须严格保持人物外观的完全一致性!
+- 角色识别: 严格按照参考图中人物的面部特征、发型发色、服装造型
+- 面部特征: 五官轮廓、眼睛颜色形状、鼻子嘴巴结构必须与参考图一致
+- 发型发色: 头发长度、颜色、质感、发型样式必须完全匹配参考图
+- 服装造型: 服装款式、颜色、材质必须与参考图保持一致
+- 面部表情: 在保持外观一致的基础上,添加微表情、情绪真实度、眼神方向
+- 肢体语言: 在保持体型一致的基础上,展现自然的身体姿态、重心分布、肌肉张力
 - 服装细节: 服装的运动感、物理真实性、纹理细节
 - 毛发细节: 头发丝、自然的毛发运动
 

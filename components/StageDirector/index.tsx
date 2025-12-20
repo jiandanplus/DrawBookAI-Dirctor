@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, Sparkles, Loader2, AlertCircle, Edit2, Film, Video as VideoIcon } from 'lucide-react';
 import { ProjectState, Shot, Keyframe } from '../../types';
-import { generateImage, generateVideo, generateActionSuggestion, optimizeKeyframePrompt, optimizeBothKeyframes } from '../../services/geminiService';
+import { generateImage, generateVideo, generateActionSuggestion, optimizeKeyframePrompt, optimizeBothKeyframes, enhanceKeyframePrompt } from '../../services/geminiService';
 import { 
   getRefImagesForShot, 
-  buildKeyframePrompt, 
+  buildKeyframePrompt,
+  buildKeyframePromptWithAI,
   buildVideoPrompt,
   extractBasePrompt,
   generateId,
@@ -32,6 +33,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number, message: string} | null>(null);
   const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
+  const [useAIEnhancement, setUseAIEnhancement] = useState(true); // 是否使用AI增强提示词
   
   // 统一的编辑状态
   const [editModal, setEditModal] = useState<{
@@ -99,7 +101,19 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
       : shot.actionSummary;
     
     const visualStyle = project.visualStyle || project.scriptData?.visualStyle || 'live-action';
-    const prompt = buildKeyframePrompt(basePrompt, visualStyle, shot.cameraMovement, type);
+    
+    // 根据开关选择是否使用AI增强
+    let prompt: string;
+    if (useAIEnhancement) {
+      try {
+        prompt = await buildKeyframePromptWithAI(basePrompt, visualStyle, shot.cameraMovement, type, true);
+      } catch (error) {
+        console.error('AI增强失败,使用基础提示词:', error);
+        prompt = buildKeyframePrompt(basePrompt, visualStyle, shot.cameraMovement, type);
+      }
+    } else {
+      prompt = buildKeyframePrompt(basePrompt, visualStyle, shot.cameraMovement, type);
+    }
     
     // 设置生成状态
     updateProject((prevProject: ProjectState) => ({
@@ -561,6 +575,20 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
         </div>
 
         <div className="flex items-center gap-3">
+          {/* AI增强开关 */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-black/30 border border-zinc-800">
+            <Sparkles className={`w-3.5 h-3.5 ${useAIEnhancement ? 'text-indigo-400' : 'text-zinc-600'}`} />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-zinc-400">AI增强提示词</span>
+              <input
+                type="checkbox"
+                checked={useAIEnhancement}
+                onChange={(e) => setUseAIEnhancement(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-zinc-600 bg-zinc-800 text-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+              />
+            </label>
+          </div>
+          
           <span className="text-xs text-zinc-500 mr-4 font-mono">
             {project.shots.filter(s => s.interval?.videoUrl).length} / {project.shots.length} 完成
           </span>

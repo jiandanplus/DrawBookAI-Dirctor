@@ -60,6 +60,15 @@ export const buildKeyframePrompt = (
     ? `【起始帧要求】建立清晰的初始状态和场景氛围,人物/物体的起始位置、姿态和表情要明确,为后续运动预留视觉空间和动势。`
     : `【结束帧要求】展现动作完成后的最终状态,人物/物体的终点位置、姿态和情绪变化,体现镜头运动带来的视角变化。`;
 
+  // 角色一致性要求
+  const characterConsistencyGuide = `【角色一致性要求】CHARACTER CONSISTENCY REQUIREMENTS - CRITICAL
+⚠️ 如果提供了角色参考图,画面中的人物外观必须严格遵循参考图:
+• 面部特征: 五官轮廓、眼睛颜色和形状、鼻子和嘴巴的结构必须完全一致
+• 发型发色: 头发的长度、颜色、质感、发型样式必须保持一致
+• 服装造型: 服装的款式、颜色、材质、配饰必须与参考图匹配
+• 体型特征: 身材比例、身高体型必须保持一致
+⚠️ 这是最高优先级要求,不可妥协!`;
+
   return `${basePrompt}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -73,7 +82,46 @@ ${cameraMovement} (${frameType === 'start' ? 'Initial Frame 起始帧' : 'Final 
 【构图指导】Composition Guide
 ${cameraGuide}
 
-${frameSpecificGuide}`;
+${frameSpecificGuide}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${characterConsistencyGuide}`;}
+};
+
+/**
+ * 构建关键帧提示词 - AI增强版
+ * 使用LLM动态生成详细的技术规格和视觉细节
+ * @param basePrompt - 基础提示词
+ * @param visualStyle - 视觉风格
+ * @param cameraMovement - 镜头运动
+ * @param frameType - 帧类型
+ * @param enhanceWithAI - 是否使用AI增强(默认true)
+ * @returns 返回完整的提示词或Promise
+ */
+export const buildKeyframePromptWithAI = async (
+  basePrompt: string,
+  visualStyle: string,
+  cameraMovement: string,
+  frameType: 'start' | 'end',
+  enhanceWithAI: boolean = true
+): Promise<string> => {
+  // 先构建基础提示词
+  const basicPrompt = buildKeyframePrompt(basePrompt, visualStyle, cameraMovement, frameType);
+  
+  // 如果不需要AI增强,直接返回基础提示词
+  if (!enhanceWithAI) {
+    return basicPrompt;
+  }
+  
+  // 动态导入geminiService以避免循环依赖
+  try {
+    const { enhanceKeyframePrompt } = await import('../../services/geminiService');
+    const enhanced = await enhanceKeyframePrompt(basicPrompt, visualStyle, cameraMovement, frameType);
+    return enhanced;
+  } catch (error) {
+    console.error('AI增强失败,使用基础提示词:', error);
+    return basicPrompt;
+  }
 };
 
 /**
