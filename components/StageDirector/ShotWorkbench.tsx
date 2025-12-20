@@ -17,6 +17,7 @@ interface ShotWorkbenchProps {
   onAddCharacter: (charId: string) => void;
   onRemoveCharacter: (charId: string) => void;
   onVariationChange: (charId: string, varId: string) => void;
+  onSceneChange: (sceneId: string) => void;
   onGenerateKeyframe: (type: 'start' | 'end') => void;
   onUploadKeyframe: (type: 'start' | 'end') => void;
   onEditKeyframePrompt: (type: 'start' | 'end', prompt: string) => void;
@@ -39,6 +40,7 @@ const ShotWorkbench: React.FC<ShotWorkbenchProps> = ({
   onAddCharacter,
   onRemoveCharacter,
   onVariationChange,
+  onSceneChange,
   onGenerateKeyframe,
   onUploadKeyframe,
   onEditKeyframePrompt,
@@ -103,11 +105,13 @@ const ShotWorkbench: React.FC<ShotWorkbenchProps> = ({
           <SceneContext
             shot={shot}
             scene={scene}
+            scenes={scriptData.scenes}
             characters={activeCharacters}
             availableCharacters={availableCharacters}
             onAddCharacter={onAddCharacter}
             onRemoveCharacter={onRemoveCharacter}
             onVariationChange={onVariationChange}
+            onSceneChange={onSceneChange}
           />
         )}
 

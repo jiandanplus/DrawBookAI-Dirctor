@@ -1,25 +1,29 @@
 import React from 'react';
-import { MapPin, User, Clock, X, Shirt } from 'lucide-react';
+import { MapPin, User, Clock, X, Shirt, Edit2 } from 'lucide-react';
 import { Shot, Character, Scene } from '../../types';
 
 interface SceneContextProps {
   shot: Shot;
   scene?: Scene;
+  scenes?: Scene[]; // 所有可用场景列表
   characters: Character[];
   availableCharacters: Character[];
   onAddCharacter: (charId: string) => void;
   onRemoveCharacter: (charId: string) => void;
   onVariationChange: (charId: string, varId: string) => void;
+  onSceneChange?: (sceneId: string) => void; // 场景切换回调
 }
 
 const SceneContext: React.FC<SceneContextProps> = ({
   shot,
   scene,
+  scenes = [],
   characters,
   availableCharacters,
   onAddCharacter,
   onRemoveCharacter,
-  onVariationChange
+  onVariationChange,
+  onSceneChange
 }) => {
   return (
     <div className="bg-[#141414] p-5 rounded-xl border border-zinc-800 mb-6 space-y-4">
@@ -42,9 +46,23 @@ const SceneContext: React.FC<SceneContextProps> = ({
         </div>
         
         <div className="flex-1 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-white text-sm font-bold">{scene?.location || '未知场景'}</span>
-            <span className="text-sm px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded-full flex items-center gap-1">
+          <div className="flex items-center justify-between gap-2">
+            {onSceneChange && scenes.length > 1 ? (
+              <select
+                value={shot.sceneId}
+                onChange={(e) => onSceneChange(e.target.value)}
+                className="flex-1 bg-zinc-900 text-white text-sm font-bold border border-zinc-700 rounded px-2 py-1 outline-none focus:border-indigo-500 hover:border-zinc-600 transition-colors"
+              >
+                {scenes.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.location}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-white text-sm font-bold">{scene?.location || '未知场景'}</span>
+            )}
+            <span className="text-sm px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded-full flex items-center gap-1 shrink-0">
               <Clock className="w-3 h-3" />
               {scene?.time}
             </span>

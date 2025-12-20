@@ -486,6 +486,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
               ...s,
               characterVariations: { ...(s.characterVariations || {}), [charId]: varId }
             }))}
+            onSceneChange={(sceneId) => updateShot(activeShot.id, s => ({ ...s, sceneId }))}
             onGenerateKeyframe={(type) => handleGenerateKeyframe(activeShot, type)}
             onUploadKeyframe={(type) => handleUploadKeyframeImage(activeShot, type)}
             onEditKeyframePrompt={(type, prompt) => setEditModal({ type: 'keyframe', value: prompt, frameType: type })}
