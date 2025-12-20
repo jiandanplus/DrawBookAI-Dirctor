@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutGrid, Sparkles, Loader2, AlertCircle, Edit2, Film, Video as VideoIcon } from 'lucide-react';
 import { ProjectState, Shot, Keyframe } from '../../types';
 import { generateImage, generateVideo, generateActionSuggestion } from '../../services/geminiService';
@@ -44,6 +44,36 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
   
   const allStartFramesGenerated = project.shots.length > 0 && 
     project.shots.every(s => s.keyframes?.find(k => k.type === 'start')?.imageUrl);
+
+  /**
+   * 组件加载时，检测并重置卡住的生成状态
+   * 解决关闭系统后重新打开时，状态仍为"generating"导致无法重新生成的问题
+   */
+  useEffect(() => {
+    const hasStuckGenerating = project.shots.some(shot => {
+      const stuckKeyframes = shot.keyframes?.some(kf => kf.status === 'generating' && !kf.imageUrl);
+      const stuckVideo = shot.interval?.status === 'generating' && !shot.interval?.videoUrl;
+      return stuckKeyframes || stuckVideo;
+    });
+
+    if (hasStuckGenerating) {
+      console.log('🔧 检测到卡住的生成状态，正在重置...');
+      updateProject((prevProject: ProjectState) => ({
+        ...prevProject,
+        shots: prevProject.shots.map(shot => ({
+          ...shot,
+          keyframes: shot.keyframes?.map(kf => 
+            kf.status === 'generating' && !kf.imageUrl
+              ? { ...kf, status: 'failed' as const }
+              : kf
+          ),
+          interval: shot.interval && shot.interval.status === 'generating' && !shot.interval.videoUrl
+            ? { ...shot.interval, status: 'failed' as const }
+            : shot.interval
+        }))
+      }));
+    }
+  }, [project.id]); // 仅在项目ID变化时运行，避免重复执行
 
   /**
    * 更新镜头
