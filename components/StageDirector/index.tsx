@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LayoutGrid, Sparkles, Loader2, AlertCircle, Edit2, Film, Video as VideoIcon } from 'lucide-react';
 import { ProjectState, Shot, Keyframe } from '../../types';
-import { generateImage, generateVideo } from '../../services/geminiService';
+import { generateImage, generateVideo, generateActionSuggestion } from '../../services/geminiService';
 import { 
   getRefImagesForShot, 
   buildKeyframePrompt, 
@@ -29,6 +29,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number, message: string} | null>(null);
   const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
+  const [isAIGenerating, setIsAIGenerating] = useState(false);
   
   // 统一的编辑状态
   const [editModal, setEditModal] = useState<{
@@ -311,6 +312,47 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     setEditModal(null);
   };
 
+  /**
+   * AI生成动作建议
+   */
+  const handleGenerateAIAction = async () => {
+    if (!activeShot) return;
+    
+    const startKf = activeShot.keyframes?.find(k => k.type === 'start');
+    const endKf = activeShot.keyframes?.find(k => k.type === 'end');
+    
+    // 检查是否有首帧和尾帧
+    if (!startKf?.visualPrompt && !endKf?.visualPrompt) {
+      alert('请先生成或编辑首帧和尾帧的提示词，以便AI更好地理解场景');
+      return;
+    }
+    
+    setIsAIGenerating(true);
+    
+    try {
+      const startPrompt = startKf?.visualPrompt || activeShot.actionSummary || '未定义的起始场景';
+      const endPrompt = endKf?.visualPrompt || activeShot.actionSummary || '未定义的结束场景';
+      const cameraMovement = activeShot.cameraMovement || '平移';
+      
+      const suggestion = await generateActionSuggestion(
+        startPrompt,
+        endPrompt,
+        cameraMovement
+      );
+      
+      // 更新编辑框的内容
+      if (editModal && editModal.type === 'action') {
+        setEditModal({ ...editModal, value: suggestion });
+      }
+    } catch (e: any) {
+      console.error('AI动作生成失败:', e);
+      if (onApiKeyError && onApiKeyError(e)) return;
+      alert(`AI动作生成失败: ${e.message}`);
+    } finally {
+      setIsAIGenerating(false);
+    }
+  };
+
   // 空状态
   if (!project.shots.length) {
     return (
@@ -450,6 +492,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
           '输入视频生成的提示词...'
         }
         textareaClassName={editModal?.type === 'keyframe' || editModal?.type === 'video' ? 'font-mono' : 'font-normal'}
+        showAIGenerate={editModal?.type === 'action'}
+        onAIGenerate={handleGenerateAIAction}
+        isAIGenerating={isAIGenerating}
       />
 
       {/* Image Preview Modal */}
