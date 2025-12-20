@@ -85,7 +85,7 @@ ${cameraGuide}
 ${frameSpecificGuide}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${characterConsistencyGuide}`;}
+${characterConsistencyGuide}`;
 };
 
 /**
