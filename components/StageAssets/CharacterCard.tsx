@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Check, Sparkles, Loader2, Shirt, Trash2, Edit2 } from 'lucide-react';
+import { User, Check, Sparkles, Loader2, Shirt, Trash2, Edit2, AlertCircle } from 'lucide-react';
 import { Character } from '../../types';
 import PromptEditor from './PromptEditor';
 import ImageUploadButton from './ImageUploadButton';
@@ -73,16 +73,34 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
               </>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-zinc-700 p-2 text-center">
-                <User className="w-8 h-8 mb-2 opacity-10" />
-                <ImageUploadButton
-                  variant="inline"
-                  size="small"
-                  onUpload={onUpload}
-                  onGenerate={onGenerate}
-                  isGenerating={isGenerating}
-                  uploadLabel="上传"
-                  generateLabel="生成"
-                />
+                {character.status === 'failed' ? (
+                  <>
+                    <AlertCircle className="w-8 h-8 mb-2 text-red-500" />
+                    <span className="text-[10px] text-red-500 mb-2">生成失败</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGenerate();
+                      }}
+                      className="px-3 py-1.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded text-[9px] font-bold transition-colors border border-red-700"
+                    >
+                      重试
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-8 h-8 mb-2 opacity-10" />
+                    <ImageUploadButton
+                      variant="inline"
+                      size="small"
+                      onUpload={onUpload}
+                      onGenerate={onGenerate}
+                      isGenerating={isGenerating}
+                      uploadLabel="上传"
+                      generateLabel="生成"
+                    />
+                  </>
+                )}
               </div>
             )}
           </div>

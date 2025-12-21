@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Sparkles, RefreshCw, Loader2, MapPin } from 'lucide-react';
 import { ProjectState, CharacterVariation, Character, Scene } from '../../types';
 import { generateImage, generateVisualPrompts } from '../../services/geminiService';
@@ -34,6 +34,49 @@ const StageAssets: React.FC<Props> = ({ project, updateProject, onApiKeyError })
   const language = getProjectLanguage(project.language, project.scriptData?.language);
   const visualStyle = getProjectVisualStyle(project.visualStyle, project.scriptData?.visualStyle);
   const genre = project.scriptData?.genre || DEFAULTS.genre;
+
+  /**
+   * 组件加载时，检测并重置卡住的生成状态
+   * 解决关闭页面后重新打开时，状态仍为"generating"导致无法重新生成的问题
+   */
+  useEffect(() => {
+    if (!project.scriptData) return;
+
+    const hasStuckCharacters = project.scriptData.characters.some(char => {
+      // 检查角色本身是否卡住
+      const isCharStuck = char.status === 'generating' && !char.referenceImage;
+      // 检查角色变体是否卡住
+      const hasStuckVariations = char.variations?.some(v => v.status === 'generating' && !v.referenceImage);
+      return isCharStuck || hasStuckVariations;
+    });
+
+    const hasStuckScenes = project.scriptData.scenes.some(scene => 
+      scene.status === 'generating' && !scene.referenceImage
+    );
+
+    if (hasStuckCharacters || hasStuckScenes) {
+      console.log('🔧 检测到卡住的生成状态，正在重置...');
+      const newData = { ...project.scriptData };
+      
+      // 重置角色状态
+      newData.characters = newData.characters.map(char => ({
+        ...char,
+        status: char.status === 'generating' && !char.referenceImage ? 'failed' as const : char.status,
+        variations: char.variations?.map(v => ({
+          ...v,
+          status: v.status === 'generating' && !v.referenceImage ? 'failed' as const : v.status
+        }))
+      }));
+      
+      // 重置场景状态
+      newData.scenes = newData.scenes.map(scene => ({
+        ...scene,
+        status: scene.status === 'generating' && !scene.referenceImage ? 'failed' as const : scene.status
+      }));
+      
+      updateProject({ scriptData: newData });
+    }
+  }, [project.id]); // 仅在项目ID变化时运行，避免重复执行
 
   /**
    * 生成资源（角色或场景）

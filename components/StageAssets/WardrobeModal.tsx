@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, X, Shirt, Plus, RefreshCw, Loader2, Upload } from 'lucide-react';
+import { User, X, Shirt, Plus, RefreshCw, Loader2, Upload, AlertCircle } from 'lucide-react';
 import { Character, CharacterVariation } from '../../types';
 import ImageUploadButton from './ImageUploadButton';
 import { generateId } from './utils';
@@ -106,12 +106,21 @@ const WardrobeModal: React.FC<WardrobeModalProps> = ({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Shirt className="w-6 h-6 text-zinc-800" />
+                          {variation.status === 'failed' ? (
+                            <AlertCircle className="w-6 h-6 text-red-500" />
+                          ) : (
+                            <Shirt className="w-6 h-6 text-zinc-800" />
+                          )}
                         </div>
                       )}
                       {variation.status === 'generating' && (
                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                           <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        </div>
+                      )}
+                      {variation.status === 'failed' && !variation.referenceImage && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-red-900/80 text-white text-[8px] text-center py-0.5">
+                          失败
                         </div>
                       )}
                     </div>
@@ -130,10 +139,14 @@ const WardrobeModal: React.FC<WardrobeModalProps> = ({
                         <button 
                           onClick={() => onGenerateVariation(character.id, variation.id)}
                           disabled={variation.status === 'generating'}
-                          className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 hover:text-white flex items-center gap-1 transition-colors disabled:opacity-50"
+                          className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors disabled:opacity-50 ${
+                            variation.status === 'failed' 
+                              ? 'text-red-400 hover:text-red-300' 
+                              : 'text-indigo-400 hover:text-white'
+                          }`}
                         >
                           <RefreshCw className={`w-3 h-3 ${variation.status === 'generating' ? 'animate-spin' : ''}`} />
-                          {variation.referenceImage ? 'Regenerate' : 'Generate Look'}
+                          {variation.status === 'failed' ? '重试' : variation.referenceImage ? 'Regenerate' : 'Generate Look'}
                         </button>
                         <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer">
                           <Upload className="w-3 h-3" />
