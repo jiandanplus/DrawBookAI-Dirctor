@@ -660,10 +660,24 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
             onToggleAIEnhancement={() => setUseAIEnhancement(!useAIEnhancement)}
             onGenerateVideo={() => handleGenerateVideo(activeShot)}
             onModelChange={(model) => updateShot(activeShot.id, s => ({ ...s, videoModel: model }))}
-            onEditVideoPrompt={() => setEditModal({ 
-              type: 'video', 
-              value: activeShot.interval?.videoPrompt || '' 
-            })}
+            onEditVideoPrompt={() => {
+              // 如果videoPrompt不存在，动态生成一个
+              let promptValue = activeShot.interval?.videoPrompt;
+              if (!promptValue) {
+                const selectedModel = activeShot.videoModel || DEFAULTS.videoModel;
+                const projectLanguage = project.language || project.scriptData?.language || '中文';
+                promptValue = buildVideoPrompt(
+                  activeShot.actionSummary,
+                  activeShot.cameraMovement,
+                  selectedModel,
+                  projectLanguage
+                );
+              }
+              setEditModal({ 
+                type: 'video', 
+                value: promptValue
+              });
+            }}
             onImageClick={(url, title) => setPreviewImage({ url, title })}
           />
         )}

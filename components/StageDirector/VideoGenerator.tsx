@@ -21,7 +21,6 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({
 }) => {
   const isGenerating = shot.interval?.status === 'generating';
   const hasVideo = !!shot.interval?.videoUrl;
-  const hasPrompt = !!shot.interval?.videoPrompt;
   const selectedModel = shot.videoModel || 'sora-2';
 
   return (
@@ -30,15 +29,13 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({
         <h4 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
           <Video className="w-3 h-3 text-indigo-500" />
           视频生成
-          {hasPrompt && (
-            <button 
-              onClick={onEditPrompt}
-              className="p-1 text-yellow-400 hover:text-white transition-colors"
-              title="编辑视频提示词"
-            >
-              <Edit2 className="w-3 h-3" />
-            </button>
-          )}
+          <button 
+            onClick={onEditPrompt}
+            className="p-1 text-yellow-400 hover:text-white transition-colors"
+            title="预览/编辑视频提示词"
+          >
+            <Edit2 className="w-3 h-3" />
+          </button>
         </h4>
         {shot.interval?.status === 'completed' && (
           <span className="text-[10px] text-green-500 font-mono flex items-center gap-1">
