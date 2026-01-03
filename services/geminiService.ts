@@ -1428,6 +1428,207 @@ ${actionReferenceExamples}
 };
 
 /**
+ * AI镜头拆分功能 - 将单个镜头拆分为多个细致的子镜头
+ * 根据动作描述，按照景别（全景、中景、特写）和视角拆分镜头
+ * @param shot - 原始镜头对象
+ * @param sceneInfo - 场景信息（地点、时间、氛围）
+ * @param characterNames - 角色名称数组
+ * @param visualStyle - 视觉风格
+ * @param model - 使用的模型，默认'gpt-5.1'
+ * @returns 返回包含子镜头数组的对象
+ */
+export const splitShotIntoSubShots = async (
+  shot: any, // Shot type from types.ts
+  sceneInfo: { location: string; time: string; atmosphere: string },
+  characterNames: string[],
+  visualStyle: string,
+  model: string = 'gpt-5.1'
+): Promise<{ subShots: any[] }> => {
+  console.log('✂️ splitShotIntoSubShots 调用 - 使用模型:', model);
+  const startTime = Date.now();
+
+  const stylePrompts: { [key: string]: string } = {
+    'live-action': '真人实拍电影风格',
+    'anime': '日本动漫风格',
+    '3d-animation': '3D CGI动画风格',
+    'cyberpunk': '赛博朋克风格',
+    'oil-painting': '油画艺术风格'
+  };
+
+  const styleDesc = stylePrompts[visualStyle] || visualStyle;
+
+  const prompt = `
+你是一位专业的电影分镜师和导演。你的任务是将一个粗略的镜头描述，拆分为多个细致、专业的子镜头。
+
+## 原始镜头信息
+
+**场景地点：** ${sceneInfo.location}
+**场景时间：** ${sceneInfo.time}
+**场景氛围：** ${sceneInfo.atmosphere}
+**角色：** ${characterNames.length > 0 ? characterNames.join('、') : '无特定角色'}
+**视觉风格：** ${styleDesc}
+**原始镜头运动：** ${shot.cameraMovement || '未指定'}
+
+**原始动作描述：**
+${shot.actionSummary}
+
+${shot.dialogue ? `**对白：** "${shot.dialogue}"` : ''}
+
+## 拆分要求
+
+### 核心原则
+1. **单一职责**：每个子镜头只负责一个视角或动作细节，避免混合多个视角
+2. **时长控制**：每个子镜头时长约2-4秒，总时长保持在8-10秒左右
+3. **景别多样化**：合理运用全景、中景、特写等不同景别
+4. **连贯性**：子镜头之间要有逻辑的视觉过渡和叙事连贯性
+
+### 拆分维度示例
+
+**景别分类（Shot Size）：**
+- **远景 Long Shot / 全景 Wide Shot**：展示整体环境、人物位置关系、空间布局
+- **中景 Medium Shot**：展示人物上半身或腰部以上，强调动作和表情
+- **近景 Close-up**：展示人物头部或重要物体，强调情感和细节
+- **特写 Extreme Close-up**：聚焦关键细节（如手部动作、眼神、物体特写）
+
+**拆分策略：**
+- 如果原始描述是"我在书房走向书桌坐下来，打开电脑"，应拆分为：
+  1. 全景：展示我从书房门口走向书桌的整体环境
+  2. 中景：我走到椅子前准备坐下的动作
+  3. 特写：我坐下时身体与椅子接触的瞬间
+  4. 近景：我伸手按下电脑开机键或打开笔记本盖
+
+- 如果原始描述是连续的打斗动作，应从不同视角拆分：
+  1. 远景：展示双方对峙的整体画面
+  2. 中景：第一次攻击动作
+  3. 特写：拳头或武器的碰撞细节
+  4. 近景：角色面部反应
+
+### 必须包含的字段
+
+每个子镜头必须包含以下信息：
+
+1. **shotSize**（景别）：明确标注景别类型（全景、中景、特写等）
+2. **cameraMovement**（镜头运动）：描述镜头如何移动（静止、推进、跟踪、环绕等）
+3. **actionSummary**（动作描述）：清晰、具体的动作和画面内容描述（60-100字）
+4. **visualFocus**（视觉焦点）：这个镜头的视觉重点是什么（如"人物移动轨迹"、"手部特写"、"面部表情变化"等）
+
+### 专业镜头运动参考
+
+可从以下类型中选择或自定义：
+- 静止镜头 Static Shot
+- 推镜头 Dolly Shot / 拉镜头 Zoom Out
+- 跟踪镜头 Tracking Shot
+- 平移镜头 Pan Shot
+- 环绕镜头 Circular Shot
+- 俯视镜头 High Angle / 仰视镜头 Low Angle
+- 主观视角 POV Shot
+- 越肩镜头 Over the Shoulder
+
+## 输出格式
+
+请输出JSON格式，结构如下：
+
+\`\`\`json
+{
+  "subShots": [
+    {
+      "shotSize": "全景 Wide Shot",
+      "cameraMovement": "静止镜头 Static Shot",
+      "actionSummary": "镜头从书房门口的角度，展示整个书房空间，我从门口缓步走向位于房间中央的书桌，背景可见书架、窗户和温暖的灯光。",
+      "visualFocus": "整体环境布局和人物移动轨迹"
+    },
+    {
+      "shotSize": "中景 Medium Shot",
+      "cameraMovement": "跟踪镜头 Tracking Shot",
+      "actionSummary": "镜头跟随我走到书桌前，拍摄腰部以上，我伸手拉开椅子，身体微微前倾准备坐下。",
+      "visualFocus": "人物上半身动作和与椅子的互动"
+    },
+    {
+      "shotSize": "特写 Close-up",
+      "cameraMovement": "静止镜头 Static Shot",
+      "actionSummary": "特写镜头聚焦在我的臀部和椅子座面，捕捉我坐下的瞬间，椅子轻微下沉的动作。",
+      "visualFocus": "身体与椅子接触的细节瞬间"
+    },
+    {
+      "shotSize": "近景 Close Shot",
+      "cameraMovement": "推镜头 Dolly In",
+      "actionSummary": "镜头从侧面推进，拍摄我端坐在椅子上，手伸向电脑，按下开机键，屏幕亮起微光照亮脸部。",
+      "visualFocus": "手部按键动作和屏幕亮起的瞬间"
+    }
+  ]
+}
+\`\`\`
+
+## 重要提示
+
+❌ **避免：**
+- 不要在单个子镜头中混合多个视角或景别
+- 不要拆分过细导致总时长超过10秒
+- 不要使用过于技术化或晦涩的术语
+- 不要忽略视觉连贯性
+
+✅ **追求：**
+- 每个子镜头职责清晰、画面感强
+- 景别和视角多样化但符合叙事逻辑
+- 动作描述具体、可执行
+- 保持电影级的专业表达
+
+请开始拆分，直接输出JSON格式（不要包含markdown代码块标记）：
+`;
+
+  try {
+    const result = await retryOperation(() => chatCompletion(prompt, model, 0.7, 4096));
+    const duration = Date.now() - startTime;
+    
+    // 清理和解析JSON
+    const cleaned = cleanJsonString(result);
+    const parsed = JSON.parse(cleaned);
+    
+    if (!parsed.subShots || !Array.isArray(parsed.subShots) || parsed.subShots.length === 0) {
+      throw new Error('AI返回的JSON格式不正确或子镜头数组为空');
+    }
+    
+    // 验证每个子镜头包含必需字段
+    for (const subShot of parsed.subShots) {
+      if (!subShot.shotSize || !subShot.cameraMovement || !subShot.actionSummary || !subShot.visualFocus) {
+        throw new Error('子镜头缺少必需字段（shotSize、cameraMovement、actionSummary、visualFocus）');
+      }
+    }
+    
+    console.log(`✅ 镜头拆分成功，生成 ${parsed.subShots.length} 个子镜头，耗时:`, duration, 'ms');
+    
+    // 记录成功日志
+    addRenderLogWithTokens({
+      type: 'script-parsing',
+      resourceId: `shot-split-${shot.id}-${Date.now()}`,
+      resourceName: `镜头拆分 - ${shot.actionSummary.substring(0, 30)}...`,
+      status: 'success',
+      model: model,
+      prompt: prompt.substring(0, 200) + '...',
+      duration: duration
+    });
+    
+    return parsed;
+  } catch (error: any) {
+    console.error('❌ 镜头拆分失败:', error);
+    
+    // 记录失败日志
+    addRenderLogWithTokens({
+      type: 'script-parsing',
+      resourceId: `shot-split-${shot.id}-${Date.now()}`,
+      resourceName: `镜头拆分 - ${shot.actionSummary.substring(0, 30)}...`,
+      status: 'failed',
+      model: model,
+      prompt: prompt.substring(0, 200) + '...',
+      error: error.message,
+      duration: Date.now() - startTime
+    });
+    
+    throw new Error(`镜头拆分失败: ${error.message}`);
+  }
+};
+
+/**
  * AI增强关键帧提示词 - 添加详细的技术规格和视觉细节
  * 使用LLM根据基础提示词生成专业的电影级视觉描述
  * @param basePrompt - 基础提示词(包含场景、角色、动作等基本信息)

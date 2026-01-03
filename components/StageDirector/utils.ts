@@ -231,3 +231,72 @@ export const updateKeyframeInShot = (
   
   return { ...shot, keyframes: newKeyframes };
 };
+
+/**
+ * 生成子镜头ID数组
+ * @param originalShotId - 原始镜头ID（如 "shot-1"）
+ * @param count - 子镜头数量
+ * @returns 子镜头ID数组（如 ["shot-1-1", "shot-1-2", "shot-1-3"]）
+ */
+export const generateSubShotIds = (originalShotId: string, count: number): string[] => {
+  const ids: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    ids.push(`${originalShotId}-${i}`);
+  }
+  return ids;
+};
+
+/**
+ * 创建子镜头对象
+ * @param originalShot - 原始镜头对象
+ * @param subShotData - AI返回的子镜头数据
+ * @param subShotId - 子镜头ID
+ * @returns 新的Shot对象
+ */
+export const createSubShot = (
+  originalShot: Shot,
+  subShotData: any,
+  subShotId: string
+): Shot => {
+  return {
+    id: subShotId,
+    sceneId: originalShot.sceneId, // 继承原镜头的场景ID
+    actionSummary: subShotData.actionSummary, // 使用AI生成的动作描述
+    dialogue: originalShot.dialogue, // 继承对白（如果有）
+    cameraMovement: subShotData.cameraMovement, // 使用AI生成的镜头运动
+    shotSize: subShotData.shotSize, // 使用AI生成的景别
+    characters: [...originalShot.characters], // 继承角色列表
+    characterVariations: { ...originalShot.characterVariations }, // 继承角色变体映射
+    keyframes: [], // 初始化空的关键帧数组
+    videoModel: originalShot.videoModel // 继承视频模型设置
+  };
+};
+
+/**
+ * 用子镜头数组替换原镜头
+ * @param shots - 原始镜头数组
+ * @param originalShotId - 要替换的原镜头ID
+ * @param subShots - 子镜头数组
+ * @returns 更新后的镜头数组
+ */
+export const replaceShotWithSubShots = (
+  shots: Shot[],
+  originalShotId: string,
+  subShots: Shot[]
+): Shot[] => {
+  const originalIndex = shots.findIndex(s => s.id === originalShotId);
+  
+  if (originalIndex === -1) {
+    console.error(`未找到ID为 ${originalShotId} 的镜头`);
+    return shots;
+  }
+  
+  // 创建新数组，在原位置插入子镜头
+  const newShots = [
+    ...shots.slice(0, originalIndex),
+    ...subShots,
+    ...shots.slice(originalIndex + 1)
+  ];
+  
+  return newShots;
+};

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, X, Film, Edit2, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Film, Edit2, MessageSquare, Sparkles, Loader2, Scissors } from 'lucide-react';
 import { Shot, Character, Scene, ProjectState } from '../../types';
 import SceneContext from './SceneContext';
 import KeyframeEditor from './KeyframeEditor';
@@ -11,11 +11,13 @@ interface ShotWorkbenchProps {
   totalShots: number;
   scriptData?: ProjectState['scriptData'];
   isAIOptimizing?: boolean;
+  isSplittingShot?: boolean;
   onClose: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onEditActionSummary: () => void;
   onGenerateAIAction: () => void;
+  onSplitShot: () => void;
   onAddCharacter: (charId: string) => void;
   onRemoveCharacter: (charId: string) => void;
   onVariationChange: (charId: string, varId: string) => void;
@@ -40,11 +42,13 @@ const ShotWorkbench: React.FC<ShotWorkbenchProps> = ({
   totalShots,
   scriptData,
   isAIOptimizing = false,
+  isSplittingShot = false,
   onClose,
   onPrevious,
   onNext,
   onEditActionSummary,
   onGenerateAIAction,
+  onSplitShot,
   onAddCharacter,
   onRemoveCharacter,
   onVariationChange,
@@ -135,6 +139,18 @@ const ShotWorkbench: React.FC<ShotWorkbenchProps> = ({
               叙事动作 (Action & Dialogue)
             </h4>
             <div className="ml-auto flex items-center gap-1">
+              <button 
+                onClick={onSplitShot}
+                disabled={isSplittingShot}
+                className="p-1 text-green-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="AI拆分镜头"
+              >
+                {isSplittingShot ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Scissors className="w-3 h-3" />
+                )}
+              </button>
               <button 
                 onClick={onGenerateAIAction}
                 disabled={isAIOptimizing}

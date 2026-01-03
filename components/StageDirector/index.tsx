@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutGrid, Sparkles, Loader2, AlertCircle, Edit2, Film, Video as VideoIcon } from 'lucide-react';
 import { ProjectState, Shot, Keyframe } from '../../types';
-import { generateImage, generateVideo, generateActionSuggestion, optimizeKeyframePrompt, optimizeBothKeyframes, enhanceKeyframePrompt } from '../../services/geminiService';
+import { generateImage, generateVideo, generateActionSuggestion, optimizeKeyframePrompt, optimizeBothKeyframes, enhanceKeyframePrompt, splitShotIntoSubShots } from '../../services/geminiService';
 import { 
   getRefImagesForShot, 
   buildKeyframePrompt,
@@ -12,7 +12,10 @@ import {
   delay,
   convertImageToBase64,
   createKeyframe,
-  updateKeyframeInShot
+  updateKeyframeInShot,
+  generateSubShotIds,
+  createSubShot,
+  replaceShotWithSubShots
 } from './utils';
 import { DEFAULTS } from './constants';
 import EditModal from './EditModal';
@@ -34,6 +37,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
   const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [useAIEnhancement, setUseAIEnhancement] = useState(false); // 是否使用AI增强提示词
+  const [isSplittingShot, setIsSplittingShot] = useState(false); // 是否正在拆分镜头
   
   // 统一的编辑状态
   const [editModal, setEditModal] = useState<{
@@ -532,6 +536,72 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
     }
   };
 
+  /**
+   * AI拆分镜头
+   * 将单个镜头拆分为多个细致的子镜头（按景别和视角）
+   */
+  const handleSplitShot = async (shot: Shot) => {
+    if (!shot) return;
+    
+    // 1. 获取场景信息
+    const scene = project.scriptData?.scenes.find(s => String(s.id) === String(shot.sceneId));
+    if (!scene) {
+      showAlert('找不到场景信息', { type: 'warning' });
+      return;
+    }
+    
+    // 2. 获取角色名称
+    const characterNames: string[] = [];
+    if (shot.characters && project.scriptData?.characters) {
+      shot.characters.forEach(charId => {
+        const char = project.scriptData?.characters.find(c => String(c.id) === String(charId));
+        if (char) characterNames.push(char.name);
+      });
+    }
+    
+    const visualStyle = project.visualStyle || project.scriptData?.visualStyle || 'live-action';
+    const shotGenerationModel = project.shotGenerationModel || 'gpt-5.1';
+    
+    // 3. 调用AI拆分
+    setIsSplittingShot(true);
+    
+    try {
+      const subShotsData = await splitShotIntoSubShots(
+        shot,
+        {
+          location: scene.location,
+          time: scene.time,
+          atmosphere: scene.atmosphere
+        },
+        characterNames,
+        visualStyle,
+        shotGenerationModel
+      );
+      
+      // 4. 生成子镜头对象
+      const subShotIds = generateSubShotIds(shot.id, subShotsData.subShots.length);
+      const subShots = subShotsData.subShots.map((data, idx) => 
+        createSubShot(shot, data, subShotIds[idx])
+      );
+      
+      // 5. 替换原镜头
+      updateProject((prevProject: ProjectState) => ({
+        ...prevProject,
+        shots: replaceShotWithSubShots(prevProject.shots, shot.id, subShots)
+      }));
+      
+      // 6. 关闭工作台，显示成功提示
+      setActiveShotId(null);
+      showAlert(`镜头已拆分为 ${subShots.length} 个子镜头`, { type: 'success' });
+    } catch (e: any) {
+      console.error('镜头拆分失败:', e);
+      if (onApiKeyError && onApiKeyError(e)) return;
+      showAlert(`拆分失败: ${e.message}`, { type: 'error' });
+    } finally {
+      setIsSplittingShot(false);
+    }
+  };
+
   // 空状态
   if (!project.shots.length) {
     return (
@@ -632,11 +702,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, onApiKeyError 
             totalShots={project.shots.length}
             scriptData={project.scriptData}
             isAIOptimizing={isAIGenerating}
+            isSplittingShot={isSplittingShot}
             onClose={() => setActiveShotId(null)}
             onPrevious={() => setActiveShotId(project.shots[activeShotIndex - 1].id)}
             onNext={() => setActiveShotId(project.shots[activeShotIndex + 1].id)}
             onEditActionSummary={() => setEditModal({ type: 'action', value: activeShot.actionSummary })}
             onGenerateAIAction={handleGenerateAIAction}
+            onSplitShot={() => handleSplitShot(activeShot)}
             onAddCharacter={(charId) => updateShot(activeShot.id, s => ({ ...s, characters: [...s.characters, charId] }))}
             onRemoveCharacter={(charId) => updateShot(activeShot.id, s => ({
               ...s,
