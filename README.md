@@ -116,7 +116,7 @@
 扫码加入【大香蕉】产品体验群，与其他创作者交流经验、获取最新功能更新：
 
 <div align="center">
-<img src="./images/wechat-qr.png" width="300" alt="微信群二维码">
+<img src="./images/qrcode.jpg" width="300" alt="微信群二维码">
 <p><i>微信扫码加入交流群</i></p>
 </div>
 

@@ -114,7 +114,7 @@
 QRコードをスキャンして **BigBanana プロダクト体験グループ** に参加しましょう。他のクリエイターと交流し、最新情報を入手できます：
 
 <div align="center">
-<img src="./images/wechat-qr.png" width="300" alt="WeChat グループ QR コード">
+<img src="./images/qrcode.jpg" width="300" alt="WeChat グループ QR コード">
 <p><i>WeChat でスキャンしてグループに参加</i></p>
 </div>
 
