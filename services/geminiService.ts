@@ -959,15 +959,21 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
     const statusData = await statusResponse.json();
     const status = statusData.status;
     
-    console.log('🔄 sora-2任务状态:', status);
+    console.log('🔄 sora-2任务状态:', status, '进度:', statusData.progress);
     
     if (status === 'completed' || status === 'succeeded') {
       // 任务完成，获取视频ID
-      // 响应可能包含 output_video 或 video_id 或 outputs
-      videoId = statusData.output_video || statusData.video_id || statusData.outputs?.[0]?.id;
+      // 根据实际API响应，completed时 id 字段就是视频ID (如 video_xxx)
+      // 优先使用 id 字段（如果是 video_ 开头），否则尝试其他字段
+      if (statusData.id && statusData.id.startsWith('video_')) {
+        videoId = statusData.id;
+      } else {
+        videoId = statusData.output_video || statusData.video_id || statusData.outputs?.[0]?.id || statusData.id;
+      }
       if (!videoId && statusData.outputs && statusData.outputs.length > 0) {
         videoId = statusData.outputs[0];
       }
+      console.log('✅ 任务完成，视频ID:', videoId);
       break;
     } else if (status === 'failed' || status === 'error') {
       throw new Error(`视频生成失败: ${statusData.error || statusData.message || '未知错误'}`);
