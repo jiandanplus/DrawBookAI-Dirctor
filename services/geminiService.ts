@@ -79,7 +79,7 @@ export const verifyApiKey = async (key: string): Promise<{ success: boolean; mes
 };
 
 /**
- * 重试操作辅助函数，用于处理429限流错误
+ * 重试操作辅助函数，用于处理429限流错误、超时错误和其他临时性错误
  * @param operation - 要执行的异步操作函数
  * @param maxRetries - 最大重试次数，默认3次
  * @param baseDelay - 基础延迟时间（毫秒），默认2000ms，采用指数退避策略
@@ -93,14 +93,30 @@ const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number
       return await operation();
     } catch (e: any) {
       lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
+      // 判断是否是可重试的错误
+      const isRetryableError = 
+        e.status === 429 || 
+        e.code === 429 || 
+        e.status === 504 || // Gateway Timeout
+        e.message?.includes('429') || 
+        e.message?.includes('quota') || 
+        e.message?.includes('RESOURCE_EXHAUSTED') ||
+        e.message?.includes('超时') ||
+        e.message?.includes('timeout') ||
+        e.message?.includes('Gateway Timeout') ||
+        e.message?.includes('504') ||
+        e.message?.includes('ECONNRESET') ||
+        e.message?.includes('ETIMEDOUT') ||
+        e.message?.includes('network') ||
+        e.status >= 500; // 服务器错误也重试
+      
+      if (isRetryableError && i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i);
-        console.warn(`Hit rate limit, retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+        console.warn(`请求失败，正在重试... (第 ${i + 1}/${maxRetries} 次，${delay}ms后重试)`, e.message);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
-      throw e; // Throw other errors immediately
+      throw e; // 不可重试的错误或已达到最大重试次数
     }
   }
   throw lastError;
@@ -144,13 +160,14 @@ const cleanJsonString = (str: string): string => {
  * @param temperature - 温度参数，控制随机性，默认0.7
  * @param maxTokens - 最大生成token数，默认8192
  * @param responseFormat - 响应格式，'json_object'表示返回JSON格式，undefined为默认文本格式
+ * @param timeout - 超时时间（毫秒），默认600000（10分钟）
  * @returns 返回AI生成的文本内容
  * @throws 如果API调用失败则抛出错误
  */
-const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', temperature: number = 0.7, maxTokens: number = 8192, responseFormat?: 'json_object'): Promise<string> => {
+const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', temperature: number = 0.7, maxTokens: number = 8192, responseFormat?: 'json_object', timeout: number = 600000): Promise<string> => {
   const apiKey = checkApiKey();
   
-  // console.log('🌐 API请求 - 模型:', model, '| 温度:', temperature);
+  // console.log('🌐 API请求 - 模型:', model, '| 温度:', temperature, '| 超时:', timeout + 'ms');
   
   const requestBody: any = {
     model: model,
@@ -164,14 +181,20 @@ const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', tempera
     requestBody.response_format = { type: 'json_object' };
   }
   
-  const response = await fetch(`${ANTSK_API_BASE}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(requestBody)
-  });
+  // 创建AbortController用于超时控制
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(`${ANTSK_API_BASE}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
+    });
 
   if (!response.ok) {
     let errorMessage = `HTTP错误: ${response.status}`;
@@ -187,6 +210,14 @@ const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', tempera
 
   const data = await response.json();
   return data.choices?.[0]?.message?.content || '';
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    // 检查是否是超时错误
+    if (error.name === 'AbortError') {
+      throw new Error(`请求超时（${timeout}ms）`);
+    }
+    throw error;
+  }
 };
 
 /**
