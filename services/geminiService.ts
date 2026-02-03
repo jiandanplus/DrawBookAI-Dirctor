@@ -1,5 +1,6 @@
 import { ScriptData, Shot, Character, Scene } from "../types";
 import { addRenderLogWithTokens } from './renderLogService';
+import { configService } from './configService';
 
 // Custom error class for API Key issues
 export class ApiKeyError extends Error {
@@ -18,6 +19,8 @@ let runtimeApiKey: string = process.env.API_KEY || "";
  */
 export const setGlobalApiKey = (key: string) => {
   runtimeApiKey = key;
+  // Also sync to configService for persistence consistency if needed, 
+  // but for now let's keep them somewhat separate or let App.tsx handle it.
 };
 
 /**
@@ -26,24 +29,13 @@ export const setGlobalApiKey = (key: string) => {
  * @throws {ApiKeyError} 如果API密钥缺失则抛出错误
  */
 const checkApiKey = () => {
-  if (!runtimeApiKey) throw new ApiKeyError("API Key missing. Please configure your AntSK API Key.");
-  return runtimeApiKey;
+  // Try runtime key first, then config service
+  const key = runtimeApiKey || configService.getConfig().ANTSK_API_KEY;
+  if (!key) throw new ApiKeyError("API Key missing. Please configure your AntSK API Key.");
+  return key;
 };
 
-// AntSK API base URL
-// AntSK API base URL (Global Fallback)
-const ALL_API_BASE = process.env.ALL_API_BASE || 'https://api.antsk.cn';
-
-// Toggle for Global API Usage
-// Default to true to maintain backward compatibility if not set
-const USE_GLOBAL_API = process.env.USE_GLOBAL_API !== 'false';
-
-// Service-specific API URLs with Logic
-// If USE_GLOBAL_API is true, force use of ALL_API_BASE.
-// If false, use specific env vars (without fallback to ALL_API_BASE to ensure isolation).
-const TEXT_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.TEXT_API_BASE || '');
-const IMAGE_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.IMAGE_API_BASE || '');
-const VIDEO_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.VIDEO_API_BASE || '');
+// API URLs are now resolved dynamically via configService.getServiceUrls()
 
 /**
  * Verify API Key connectivity
@@ -53,7 +45,8 @@ const VIDEO_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.VIDEO_API_BAS
  */
 export const verifyApiKey = async (key: string): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await fetch(`${TEXT_API_URL}/v1/chat/completions`, {
+    const urls = configService.getServiceUrls();
+    const response = await fetch(`${urls.textUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -203,7 +196,8 @@ const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', tempera
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const response = await fetch(`${TEXT_API_URL}/v1/chat/completions`, {
+    const urls = configService.getServiceUrls();
+    const response = await fetch(`${urls.textUrl}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -754,7 +748,8 @@ export const generateImage = async (prompt: string, referenceImages: string[] = 
     });
 
     const response = await retryOperation(async () => {
-      const res = await fetch(`${IMAGE_API_URL}/v1beta/models/gemini-3-pro-image-preview:generateContent`, {
+      const urls = configService.getServiceUrls();
+      const res = await fetch(`${urls.imageUrl}/v1beta/models/gemini-3-pro-image-preview:generateContent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -946,7 +941,8 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
   }
 
   // 创建任务
-  const createResponse = await fetch(`${VIDEO_API_URL}/v1/videos`, {
+  const urls = configService.getServiceUrls();
+  const createResponse = await fetch(`${urls.videoUrl}/v1/videos`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`
@@ -991,7 +987,8 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
   while (Date.now() - startTime < maxPollingTime) {
     await new Promise(resolve => setTimeout(resolve, pollingInterval));
 
-    const statusResponse = await fetch(`${VIDEO_API_URL}/v1/videos/${taskId}`, {
+    const urls = configService.getServiceUrls();
+    const statusResponse = await fetch(`${urls.videoUrl}/v1/videos/${taskId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -1046,7 +1043,8 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
       const downloadController = new AbortController();
       const downloadTimeoutId = setTimeout(() => downloadController.abort(), downloadTimeout);
 
-      const downloadResponse = await fetch(`${VIDEO_API_URL}/v1/videos/${videoId}/content`, {
+      const urls = configService.getServiceUrls();
+      const downloadResponse = await fetch(`${urls.videoUrl}/v1/videos/${videoId}/content`, {
         method: 'GET',
         headers: {
           'Accept': '*/*',
@@ -1175,7 +1173,8 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
 
   try {
     const response = await retryOperation(async () => {
-      const res = await fetch(`${VIDEO_API_URL}/v1/chat/completions`, {
+      const urls = configService.getServiceUrls();
+      const res = await fetch(`${urls.videoUrl}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

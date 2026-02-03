@@ -55,9 +55,9 @@ export interface Shot {
   id: string;
   sceneId: string;
   actionSummary: string;
-  dialogue?: string; 
+  dialogue?: string;
   cameraMovement: string;
-  shotSize?: string; 
+  shotSize?: string;
   characters: string[]; // Character IDs
   characterVariations?: { [characterId: string]: string }; // Added: Map char ID to variation ID for this shot
   keyframes: Keyframe[];
@@ -99,15 +99,15 @@ export interface ProjectState {
   title: string;
   createdAt: number;
   lastModified: number;
-  stage: 'script' | 'assets' | 'director' | 'export' | 'prompts';
-  
+  stage: 'script' | 'assets' | 'director' | 'export' | 'prompts' | 'settings';
+
   // Script Phase Data
   rawScript: string;
   targetDuration: string;
   language: string;
   visualStyle: string; // Visual style: live-action, anime, 3d-animation, etc.
   shotGenerationModel: string; // Model for shot generation
-  
+
   scriptData: ScriptData | null;
   shots: Shot[];
   isParsingScript: boolean;

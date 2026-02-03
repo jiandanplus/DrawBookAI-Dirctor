@@ -54,8 +54,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, proje
               key={item.id}
               onClick={() => setStage(item.id as any)}
               className={`w-full flex items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${isActive
-                  ? 'border-white bg-zinc-900/50 text-white'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30'
+                ? 'border-white bg-zinc-900/50 text-white'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30'
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -70,7 +70,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, proje
 
       {/* Footer */}
       <div className="p-6 border-t border-zinc-900">
-        <div className="flex items-center justify-between text-zinc-600 hover:text-white cursor-pointer transition-colors">
+        <div
+          onClick={() => setStage('settings' as any)}
+          className="flex items-center justify-between text-zinc-600 hover:text-white cursor-pointer transition-colors"
+        >
           <span className="font-mono text-[10px] uppercase tracking-widest">系统设置</span>
           <Settings className="w-4 h-4" />
         </div>

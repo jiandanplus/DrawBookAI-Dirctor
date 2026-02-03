@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Settings from './pages/Settings';
+
+// ... (imports)
+
+
 import Sidebar from './components/Sidebar';
 import StageScript from './components/StageScript';
 import StageAssets from './components/StageAssets';
@@ -23,7 +28,7 @@ function App() {
   const [verifyError, setVerifyError] = useState<string>('');
   const [showQrCode, setShowQrCode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
   const hideStatusTimeoutRef = useRef<any>(null);
@@ -34,10 +39,10 @@ function App() {
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024;
       setIsMobile(isMobileDevice);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -54,9 +59,9 @@ function App() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       // Check if error is related to API Key
-      if (event.error?.name === 'ApiKeyError' || 
-          event.error?.message?.includes('API Key missing') ||
-          event.error?.message?.includes('AntSK API Key')) {
+      if (event.error?.name === 'ApiKeyError' ||
+        event.error?.message?.includes('API Key missing') ||
+        event.error?.message?.includes('AntSK API Key')) {
         console.warn('🔐 检测到 API Key 错误，正在返回登录页...');
         handleClearKey();
         event.preventDefault(); // Prevent default error display
@@ -66,8 +71,8 @@ function App() {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       // Check if rejection is related to API Key
       if (event.reason?.name === 'ApiKeyError' ||
-          event.reason?.message?.includes('API Key missing') ||
-          event.reason?.message?.includes('AntSK API Key')) {
+        event.reason?.message?.includes('API Key missing') ||
+        event.reason?.message?.includes('AntSK API Key')) {
         console.warn('🔐 检测到 API Key 错误，正在返回登录页...');
         handleClearKey();
         event.preventDefault(); // Prevent default error display
@@ -98,7 +103,7 @@ function App() {
     } else {
       clearLogCallback();
     }
-    
+
     return () => clearLogCallback();
   }, [project?.id]); // Re-setup when project changes
 
@@ -144,13 +149,13 @@ function App() {
 
   const handleSaveKey = async () => {
     if (!inputKey.trim()) return;
-    
+
     setIsVerifying(true);
     setVerifyError('');
-    
+
     try {
       const result = await verifyApiKey(inputKey.trim());
-      
+
       if (result.success) {
         setApiKey(inputKey.trim());
         setGlobalApiKey(inputKey.trim());
@@ -166,10 +171,10 @@ function App() {
   };
 
   const handleClearKey = () => {
-      localStorage.removeItem('antsk_api_key');
-      setApiKey('');
-      setGlobalApiKey('');
-      setProject(null);
+    localStorage.removeItem('antsk_api_key');
+    setApiKey('');
+    setGlobalApiKey('');
+    setProject(null);
   };
 
   const updateProject = (updates: Partial<ProjectState> | ((prev: ProjectState) => ProjectState)) => {
@@ -184,7 +189,7 @@ function App() {
     });
   };
 
-  const setStage = (stage: 'script' | 'assets' | 'director' | 'export' | 'prompts') => {
+  const setStage = (stage: 'script' | 'assets' | 'director' | 'export' | 'prompts' | 'settings') => {
     updateProject({ stage });
   };
 
@@ -195,7 +200,7 @@ function App() {
   const handleExitProject = async () => {
     // Force save before exiting
     if (project) {
-        await saveProjectToDB(project);
+      await saveProjectToDB(project);
     }
     setProject(null);
   };
@@ -213,6 +218,9 @@ function App() {
         return <StageExport project={project} />;
       case 'prompts':
         return <StagePrompts project={project} updateProject={updateProject} />;
+      case 'settings':
+        // @ts-ignore - Settings component doesn't need project props
+        return <Settings />;
       default:
         return <div className="text-white">未知阶段</div>;
     }
@@ -327,82 +335,82 @@ function App() {
         {/* Right Side - Login Form */}
         <div className="w-[560px] flex flex-col items-center justify-center p-12 bg-[#0A0A0A]/50 backdrop-blur-xl border-l border-zinc-800/50 relative z-10">
           <div className="w-full max-w-md bg-[#0A0A0A] border border-zinc-800 p-8 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            
+
             <div className="flex items-center gap-3 mb-8 border-b border-zinc-900 pb-6">
-               <Key className="w-8 h-8 text-indigo-400" />
-               <div>
-                  <h2 className="text-xl font-bold text-white tracking-wide">开始创作</h2>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Authentication Required</p>
-               </div>
+              <Key className="w-8 h-8 text-indigo-400" />
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-wide">开始创作</h2>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Authentication Required</p>
+              </div>
             </div>
 
             <div className="space-y-6">
-               <div>
-                 <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">BigBanana API Key</label>
-                 <input 
-                   type="password" 
-                   value={inputKey}
-                   onChange={(e) => {
-                     setInputKey(e.target.value);
-                     setVerifyError('');
-                   }}
-                   onKeyDown={(e) => {
-                     if (e.key === 'Enter' && inputKey.trim() && !isVerifying) {
-                       handleSaveKey();
-                     }
-                   }}
-                   placeholder="Enter your API Key..."
-                   className="w-full bg-[#141414] border border-zinc-800 text-white px-4 py-3 text-sm rounded-lg focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-900 transition-all font-mono placeholder:text-zinc-700"
-                   disabled={isVerifying}
-                 />
-                 {verifyError && (
-                   <p className="mt-2 text-xs text-red-400 flex items-center gap-2">
-                     <span className="w-1 h-1 bg-red-400 rounded-full"></span>
-                     {verifyError}
-                   </p>
-                 )}
-                 <p className="mt-3 text-[10px] text-zinc-600 leading-relaxed">
-                    本应用需要 BigBanana API 支持的图片生成和视频生成模型。
-                    <br />
-                    <a href="https://api.antsk.cn" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline ml-1">立即购买 API Key</a>
-                 </p>
-               </div>
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">BigBanana API Key</label>
+                <input
+                  type="password"
+                  value={inputKey}
+                  onChange={(e) => {
+                    setInputKey(e.target.value);
+                    setVerifyError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && inputKey.trim() && !isVerifying) {
+                      handleSaveKey();
+                    }
+                  }}
+                  placeholder="Enter your API Key..."
+                  className="w-full bg-[#141414] border border-zinc-800 text-white px-4 py-3 text-sm rounded-lg focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-900 transition-all font-mono placeholder:text-zinc-700"
+                  disabled={isVerifying}
+                />
+                {verifyError && (
+                  <p className="mt-2 text-xs text-red-400 flex items-center gap-2">
+                    <span className="w-1 h-1 bg-red-400 rounded-full"></span>
+                    {verifyError}
+                  </p>
+                )}
+                <p className="mt-3 text-[10px] text-zinc-600 leading-relaxed">
+                  本应用需要 BigBanana API 支持的图片生成和视频生成模型。
+                  <br />
+                  <a href="https://api.antsk.cn" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline ml-1">立即购买 API Key</a>
+                </p>
+              </div>
 
-               <button 
-                 onClick={handleSaveKey}
-                 disabled={!inputKey || isVerifying}
-                 className="w-full py-3 bg-white text-black font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-               >
-                 {isVerifying ? (
-                   <>
-                     <Loader2 className="w-3 h-3 animate-spin" />
-                     验证中...
-                   </>
-                 ) : (
-                   <>
-                     Confirm Access <ArrowRight className="w-3 h-3" />
-                   </>
-                 )}
-               </button>
+              <button
+                onClick={handleSaveKey}
+                disabled={!inputKey || isVerifying}
+                className="w-full py-3 bg-white text-black font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    验证中...
+                  </>
+                ) : (
+                  <>
+                    Confirm Access <ArrowRight className="w-3 h-3" />
+                  </>
+                )}
+              </button>
 
-               <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-700 font-mono">
-                 <ShieldCheck className="w-3 h-3" />
-                 Key is stored locally in your browser
-               </div>
+              <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-700 font-mono">
+                <ShieldCheck className="w-3 h-3" />
+                Key is stored locally in your browser
+              </div>
 
-               <div className="pt-6 border-t border-zinc-900 mt-6">
-                 <div className="flex flex-col gap-2 text-center text-[10px] text-zinc-600">
-                   <a href="https://tree456.com/" target="_blank" rel="noreferrer" className="hover:text-indigo-400 transition-colors">
-                     官网：tree456.com
-                   </a>
-                   <a href="https://bigbanana.tree456.com/" target="_blank" rel="noreferrer" className="hover:text-indigo-400 transition-colors">
-                     BigBanana产品首页
-                   </a>
-                   <button onClick={() => setShowQrCode(true)} className="hover:text-indigo-400 transition-colors">
-                     联系我们
-                   </button>
-                 </div>
-               </div>
+              <div className="pt-6 border-t border-zinc-900 mt-6">
+                <div className="flex flex-col gap-2 text-center text-[10px] text-zinc-600">
+                  <a href="https://tree456.com/" target="_blank" rel="noreferrer" className="hover:text-indigo-400 transition-colors">
+                    官网：tree456.com
+                  </a>
+                  <a href="https://bigbanana.tree456.com/" target="_blank" rel="noreferrer" className="hover:text-indigo-400 transition-colors">
+                    BigBanana产品首页
+                  </a>
+                  <button onClick={() => setShowQrCode(true)} className="hover:text-indigo-400 transition-colors">
+                    联系我们
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -411,8 +419,8 @@ function App() {
         {showQrCode && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setShowQrCode(false)}>
             <div className="bg-[#0A0A0A] border border-zinc-800 rounded-xl p-6 relative max-w-sm mx-4 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-              <button 
-                onClick={() => setShowQrCode(false)} 
+              <button
+                onClick={() => setShowQrCode(false)}
                 className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -445,7 +453,7 @@ function App() {
                 本应用需要较大的屏幕空间和桌面级浏览器环境才能正常运行。
               </p>
             </div>
-            <button 
+            <button
               onClick={handleClearKey}
               className="text-xs text-zinc-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest"
             >
@@ -457,46 +465,46 @@ function App() {
     }
 
     return (
-       <>
-         <button onClick={handleClearKey} className="fixed top-4 right-4 z-50 text-[10px] text-zinc-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest">
-            Sign Out
-         </button>
-         <Dashboard onOpenProject={handleOpenProject} />
-       </>
+      <>
+        <button onClick={handleClearKey} className="fixed top-4 right-4 z-50 text-[10px] text-zinc-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest">
+          Sign Out
+        </button>
+        <Dashboard onOpenProject={handleOpenProject} />
+      </>
     );
   }
 
   // Workspace View
   return (
     <div className="flex h-screen bg-[#121212] font-sans text-gray-100 selection:bg-indigo-500/30">
-      <Sidebar 
-        currentStage={project.stage} 
-        setStage={setStage} 
-        onExit={handleExitProject} 
+      <Sidebar
+        currentStage={project.stage}
+        setStage={setStage}
+        onExit={handleExitProject}
         projectName={project.title}
       />
-      
+
       <main className="ml-72 flex-1 h-screen overflow-hidden relative">
         {renderStage()}
-        
+
         {/* Save Status Indicator */}
         {showSaveStatus && (
           <div className="absolute top-4 right-6 pointer-events-none flex items-center gap-2 text-xs font-mono text-zinc-400 bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-             {saveStatus === 'saving' ? (
-               <>
-                 <Save className="w-3 h-3 animate-pulse" />
-                 保存中...
-               </>
-             ) : (
-               <>
-                 <CheckCircle className="w-3 h-3 text-green-500" />
-                 已保存
-               </>
-             )}
+            {saveStatus === 'saving' ? (
+              <>
+                <Save className="w-3 h-3 animate-pulse" />
+                保存中...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-3 h-3 text-green-500" />
+                已保存
+              </>
+            )}
           </div>
         )}
       </main>
-      
+
       {/* Mobile Warning Overlay for Workspace */}
       {isMobile && (
         <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center p-6">
