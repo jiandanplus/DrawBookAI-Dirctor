@@ -18,7 +18,7 @@ const SecondaryOptions: React.FC<Props> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Source Assets Download */}
-      <div 
+      <div
         onClick={onDownloadAssets}
         className={isDownloading ? STYLES.card.active : STYLES.card.base}
       >
@@ -31,12 +31,11 @@ const SecondaryOptions: React.FC<Props> = ({
             </div>
           </div>
         )}
-        <Layers className={`w-5 h-5 mb-4 transition-colors ${
-          isDownloading ? 'text-indigo-400' : 'text-zinc-600 group-hover:text-indigo-400'
-        }`} />
+        <Layers className={`w-5 h-5 mb-4 transition-colors ${isDownloading ? 'text-indigo-400' : 'text-zinc-600 group-hover:text-indigo-400'
+          }`} />
         <div>
-          <h4 className="text-sm font-bold text-white mb-1">Source Assets</h4>
-          <p className="text-[10px] text-zinc-500">Download all generated images and raw video clips.</p>
+          <h4 className="text-sm font-bold text-white mb-1">Export All Assets</h4>
+          <p className="text-[10px] text-zinc-500">One-click backup of all project files (Script, Images, Videos).</p>
         </div>
       </div>
 
@@ -50,7 +49,7 @@ const SecondaryOptions: React.FC<Props> = ({
       </div>
 
       {/* Render Logs */}
-      <div 
+      <div
         onClick={onShowLogs}
         className={STYLES.card.base}
       >

@@ -16,7 +16,7 @@ async function downloadFile(urlOrBase64: string): Promise<Blob> {
     }
     return new Blob([bytes], { type: 'video/mp4' });
   }
-  
+
   // 原有的URL下载逻辑
   const response = await fetch(urlOrBase64);
   if (!response.ok) {
@@ -35,13 +35,13 @@ export async function downloadMasterVideo(
   try {
     // 1. 筛选已完成的视频片段
     const completedShots = project.shots.filter(shot => shot.interval?.videoUrl);
-    
+
     if (completedShots.length === 0) {
       throw new Error('没有可导出的视频片段');
     }
 
     onProgress?.('正在加载 ZIP 库...', 0);
-    
+
     // 2. 动态导入 JSZip
     const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
@@ -54,11 +54,11 @@ export async function downloadMasterVideo(
       const videoUrl = shot.interval!.videoUrl!;
       const shotNum = String(i + 1).padStart(3, '0');
       const fileName = `shot_${shotNum}.mp4`;
-      
+
       try {
         const videoBlob = await downloadFile(videoUrl);
         zip.file(fileName, videoBlob);
-        
+
         const progress = 10 + Math.round((i + 1) / completedShots.length * 75);
         onProgress?.(`下载中 (${i + 1}/${completedShots.length})...`, progress);
       } catch (err) {
@@ -163,7 +163,7 @@ export async function downloadSourceAssets(
       for (let i = 0; i < project.shots.length; i++) {
         const shot = project.shots[i];
         const shotNum = String(i + 1).padStart(3, '0');
-        
+
         if (shot.keyframes) {
           for (const keyframe of shot.keyframes) {
             if (keyframe.imageUrl) {
@@ -185,8 +185,27 @@ export async function downloadSourceAssets(
       }
     }
 
+    // 5. 导出完整项目数据
+    const projectData = JSON.stringify(project, null, 2);
+    zip.file('project.json', projectData);
+
+    // 6. 导出剧本文本
+    if (project.rawScript) {
+      zip.file('script.txt', project.rawScript);
+    }
+
+    // 7. 导出Markdown格式的分镜表
+    if (project.shots) {
+      const storyboardMd = project.shots.map((shot, index) => {
+        return `## Shot ${index + 1}\n- **Action**: ${shot.actionSummary}\n- **Camera**: ${shot.cameraMovement}\n- **Dialogue**: ${shot.dialogue || 'N/A'}\n`;
+      }).join('\n');
+      zip.file('storyboard.md', storyboardMd);
+    }
+
     if (assets.length === 0) {
-      throw new Error('没有可下载的资源');
+      // Even if no media assets, we might have script/project data
+      // But let's keep the error if really nothing is there, mostly we want media.
+      // Actually with project.json we always have something.
     }
 
     onProgress?.('正在下载资源...', 5);
@@ -197,7 +216,7 @@ export async function downloadSourceAssets(
       try {
         const blob = await downloadFile(asset.url);
         zip.file(asset.path, blob);
-        
+
         const progress = 5 + Math.round((i + 1) / assets.length * 80);
         onProgress?.(`下载中 (${i + 1}/${assets.length})...`, progress);
       } catch (error) {
@@ -221,7 +240,7 @@ export async function downloadSourceAssets(
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${project.scriptData?.title || project.title || 'project'}_source_assets.zip`;
+    a.download = `${project.scriptData?.title || project.title || 'project'}_full_assets.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
