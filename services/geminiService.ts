@@ -31,7 +31,19 @@ const checkApiKey = () => {
 };
 
 // AntSK API base URL
-const ANTSK_API_BASE = 'https://api.antsk.cn';
+// AntSK API base URL (Global Fallback)
+const ALL_API_BASE = process.env.ALL_API_BASE || 'https://api.antsk.cn';
+
+// Toggle for Global API Usage
+// Default to true to maintain backward compatibility if not set
+const USE_GLOBAL_API = process.env.USE_GLOBAL_API !== 'false';
+
+// Service-specific API URLs with Logic
+// If USE_GLOBAL_API is true, force use of ALL_API_BASE.
+// If false, use specific env vars (without fallback to ALL_API_BASE to ensure isolation).
+const TEXT_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.TEXT_API_BASE || '');
+const IMAGE_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.IMAGE_API_BASE || '');
+const VIDEO_API_URL = USE_GLOBAL_API ? ALL_API_BASE : (process.env.VIDEO_API_BASE || '');
 
 /**
  * Verify API Key connectivity
@@ -41,7 +53,7 @@ const ANTSK_API_BASE = 'https://api.antsk.cn';
  */
 export const verifyApiKey = async (key: string): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await fetch(`${ANTSK_API_BASE}/v1/chat/completions`, {
+    const response = await fetch(`${TEXT_API_URL}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,8 +70,13 @@ export const verifyApiKey = async (key: string): Promise<{ success: boolean; mes
     if (!response.ok) {
       let errorMessage = `验证失败: ${response.status}`;
       try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch {
+          if (errorText) errorMessage = errorText;
+        }
       } catch (e) {
         // ignore
       }
@@ -94,12 +111,12 @@ const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number
     } catch (e: any) {
       lastError = e;
       // 判断是否是可重试的错误
-      const isRetryableError = 
-        e.status === 429 || 
-        e.code === 429 || 
+      const isRetryableError =
+        e.status === 429 ||
+        e.code === 429 ||
         e.status === 504 || // Gateway Timeout
-        e.message?.includes('429') || 
-        e.message?.includes('quota') || 
+        e.message?.includes('429') ||
+        e.message?.includes('quota') ||
         e.message?.includes('RESOURCE_EXHAUSTED') ||
         e.message?.includes('超时') ||
         e.message?.includes('timeout') ||
@@ -109,7 +126,7 @@ const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number
         e.message?.includes('ETIMEDOUT') ||
         e.message?.includes('network') ||
         e.status >= 500; // 服务器错误也重试
-      
+
       if (isRetryableError && i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i);
         console.warn(`请求失败，正在重试... (第 ${i + 1}/${maxRetries} 次，${delay}ms后重试)`, e.message);
@@ -138,18 +155,18 @@ const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number
  */
 const cleanJsonString = (str: string): string => {
   if (!str) return "{}";
-  
+
   // 移除markdown代码块标记（包括可能的语言标识符和空格）
   // 1. 匹配 ```json 或 ``` json 或 ``` (开头)
   // 2. 匹配 ``` (结尾)
   let cleaned = str.trim();
-  
+
   // 移除开头的代码块标记: ```json, ``` json, 或 ```
   cleaned = cleaned.replace(/^```(?:json)?\s*/i, '');
-  
+
   // 移除结尾的代码块标记: ```
   cleaned = cleaned.replace(/```\s*$/, '');
-  
+
   return cleaned.trim();
 };
 
@@ -166,27 +183,27 @@ const cleanJsonString = (str: string): string => {
  */
 const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', temperature: number = 0.7, maxTokens: number = 8192, responseFormat?: 'json_object', timeout: number = 600000): Promise<string> => {
   const apiKey = checkApiKey();
-  
+
   // console.log('🌐 API请求 - 模型:', model, '| 温度:', temperature, '| 超时:', timeout + 'ms');
-  
+
   const requestBody: any = {
     model: model,
     messages: [{ role: 'user', content: prompt }],
     temperature: temperature,
     max_tokens: maxTokens
   };
-  
+
   // 如果指定了响应格式为json_object，添加response_format参数
   if (responseFormat === 'json_object') {
     requestBody.response_format = { type: 'json_object' };
   }
-  
+
   // 创建AbortController用于超时控制
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
-    const response = await fetch(`${ANTSK_API_BASE}/v1/chat/completions`, {
+    const response = await fetch(`${TEXT_API_URL}/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -196,20 +213,20 @@ const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', tempera
       signal: controller.signal
     });
 
-  if (!response.ok) {
-    let errorMessage = `HTTP错误: ${response.status}`;
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.error?.message || errorMessage;
-    } catch (e) {
+    if (!response.ok) {
+      let errorMessage = `HTTP错误: ${response.status}`;
       const errorText = await response.text();
-      if (errorText) errorMessage = errorText;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (e) {
+        if (errorText) errorMessage = errorText;
+      }
+      throw new Error(errorMessage);
     }
-    throw new Error(errorMessage);
-  }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
   } catch (error: any) {
     clearTimeout(timeoutId);
     // 检查是否是超时错误
@@ -227,7 +244,7 @@ const chatCompletion = async (prompt: string, model: string = 'gpt-5.1', tempera
 export const parseScriptToData = async (rawText: string, language: string = '中文', model: string = 'gpt-5.1', visualStyle: string = 'live-action'): Promise<ScriptData> => {
   console.log('📝 parseScriptToData 调用 - 使用模型:', model, '视觉风格:', visualStyle);
   const startTime = Date.now();
-  
+
   const prompt = `
     Analyze the text and output a JSON object in the language: ${language}.
     
@@ -254,85 +271,85 @@ export const parseScriptToData = async (rawText: string, language: string = '中
   try {
     const responseText = await retryOperation(() => chatCompletion(prompt, model, 0.7, 8192, 'json_object'));
 
-  let parsed: any = {};
-  try {
-    const text = cleanJsonString(responseText);
-    parsed = JSON.parse(text);
-  } catch (e) {
-    console.error("Failed to parse script data JSON:", e);
-    parsed = {};
-  }
-  
-  // Enforce String IDs for consistency and init variations
-  const characters = Array.isArray(parsed.characters) ? parsed.characters.map((c: any) => ({
-    ...c, 
-    id: String(c.id),
-    variations: [] // Initialize empty variations
-  })) : [];
-  const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.map((s: any) => ({...s, id: String(s.id)})) : [];
-  const storyParagraphs = Array.isArray(parsed.storyParagraphs) ? parsed.storyParagraphs.map((p: any) => ({...p, sceneRefId: String(p.sceneRefId)})) : [];
-
-  const genre = parsed.genre || "通用";
-
-  // Generate visual prompts for characters and scenes
-  console.log("🎨 正在为角色和场景生成视觉提示词...", `风格: ${visualStyle}`);
-  
-  // Generate character visual prompts
-  for (let i = 0; i < characters.length; i++) {
+    let parsed: any = {};
     try {
-      // Add delay to avoid rate limits (1.5s between requests)
-      if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log(`  生成角色提示词: ${characters[i].name}`);
-      const prompts = await generateVisualPrompts('character', characters[i], genre, model, visualStyle, language);
-      characters[i].visualPrompt = prompts.visualPrompt;
-      characters[i].negativePrompt = prompts.negativePrompt;
+      const text = cleanJsonString(responseText);
+      parsed = JSON.parse(text);
     } catch (e) {
-      console.error(`Failed to generate visual prompt for character ${characters[i].name}:`, e);
-      // Continue with other characters even if one fails
+      console.error("Failed to parse script data JSON:", e);
+      parsed = {};
     }
-  }
 
-  // Generate scene visual prompts
-  for (let i = 0; i < scenes.length; i++) {
-    try {
-      // Add delay to avoid rate limits
-      if (i > 0 || characters.length > 0) await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log(`  生成场景提示词: ${scenes[i].location}`);
-      const prompts = await generateVisualPrompts('scene', scenes[i], genre, model, visualStyle, language);
-      scenes[i].visualPrompt = prompts.visualPrompt;
-      scenes[i].negativePrompt = prompts.negativePrompt;
-    } catch (e) {
-      console.error(`Failed to generate visual prompt for scene ${scenes[i].location}:`, e);
-      // Continue with other scenes even if one fails
+    // Enforce String IDs for consistency and init variations
+    const characters = Array.isArray(parsed.characters) ? parsed.characters.map((c: any) => ({
+      ...c,
+      id: String(c.id),
+      variations: [] // Initialize empty variations
+    })) : [];
+    const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.map((s: any) => ({ ...s, id: String(s.id) })) : [];
+    const storyParagraphs = Array.isArray(parsed.storyParagraphs) ? parsed.storyParagraphs.map((p: any) => ({ ...p, sceneRefId: String(p.sceneRefId) })) : [];
+
+    const genre = parsed.genre || "通用";
+
+    // Generate visual prompts for characters and scenes
+    console.log("🎨 正在为角色和场景生成视觉提示词...", `风格: ${visualStyle}`);
+
+    // Generate character visual prompts
+    for (let i = 0; i < characters.length; i++) {
+      try {
+        // Add delay to avoid rate limits (1.5s between requests)
+        if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500));
+
+        console.log(`  生成角色提示词: ${characters[i].name}`);
+        const prompts = await generateVisualPrompts('character', characters[i], genre, model, visualStyle, language);
+        characters[i].visualPrompt = prompts.visualPrompt;
+        characters[i].negativePrompt = prompts.negativePrompt;
+      } catch (e) {
+        console.error(`Failed to generate visual prompt for character ${characters[i].name}:`, e);
+        // Continue with other characters even if one fails
+      }
     }
-  }
 
-  console.log("✅ 视觉提示词生成完成！");
+    // Generate scene visual prompts
+    for (let i = 0; i < scenes.length; i++) {
+      try {
+        // Add delay to avoid rate limits
+        if (i > 0 || characters.length > 0) await new Promise(resolve => setTimeout(resolve, 1500));
 
-  const result = {
-    title: parsed.title || "未命名剧本",
-    genre: genre,
-    logline: parsed.logline || "",
-    language: language,
-    characters,
-    scenes,
-    storyParagraphs
-  };
+        console.log(`  生成场景提示词: ${scenes[i].location}`);
+        const prompts = await generateVisualPrompts('scene', scenes[i], genre, model, visualStyle, language);
+        scenes[i].visualPrompt = prompts.visualPrompt;
+        scenes[i].negativePrompt = prompts.negativePrompt;
+      } catch (e) {
+        console.error(`Failed to generate visual prompt for scene ${scenes[i].location}:`, e);
+        // Continue with other scenes even if one fails
+      }
+    }
 
-  // Log successful script parsing
-  addRenderLogWithTokens({
-    type: 'script-parsing',
-    resourceId: 'script-parse-' + Date.now(),
-    resourceName: result.title,
-    status: 'success',
-    model: model,
-    prompt: prompt.substring(0, 200) + '...',
-    duration: Date.now() - startTime
-  });
+    console.log("✅ 视觉提示词生成完成！");
 
-  return result;
+    const result = {
+      title: parsed.title || "未命名剧本",
+      genre: genre,
+      logline: parsed.logline || "",
+      language: language,
+      characters,
+      scenes,
+      storyParagraphs
+    };
+
+    // Log successful script parsing
+    addRenderLogWithTokens({
+      type: 'script-parsing',
+      resourceId: 'script-parse-' + Date.now(),
+      resourceName: result.title,
+      status: 'success',
+      model: model,
+      prompt: prompt.substring(0, 200) + '...',
+      duration: Date.now() - startTime
+    });
+
+    return result;
   } catch (error: any) {
     // Log failed script parsing
     addRenderLogWithTokens({
@@ -360,7 +377,7 @@ export const parseScriptToData = async (rawText: string, language: string = '中
 export const generateShotList = async (scriptData: ScriptData, model: string = 'gpt-5.1'): Promise<Shot[]> => {
   console.log('🎬 generateShotList 调用 - 使用模型:', model, '视觉风格:', scriptData.visualStyle);
   const overallStartTime = Date.now();
-  
+
   if (!scriptData.scenes || scriptData.scenes.length === 0) {
     return [];
   }
@@ -368,7 +385,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
   const lang = scriptData.language || '中文';
   const visualStyle = scriptData.visualStyle || 'live-action';
   const stylePrompt = VISUAL_STYLE_PROMPTS[visualStyle] || visualStyle;
-  
+
   // Helper to process a single scene
   // We process per-scene to avoid token limits and parsing errors with large JSONs
   const processScene = async (scene: Scene, index: number): Promise<Shot[]> => {
@@ -387,7 +404,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
     const totalShotsNeeded = Math.round(targetSeconds / 10);
     const scenesCount = scriptData.scenes.length;
     const shotsPerScene = Math.max(1, Math.round(totalShotsNeeded / scenesCount));
-    
+
     const prompt = `
       Act as a professional cinematographer. Generate a detailed shot list (Camera blocking) for Scene ${index + 1}.
       Language for Text Output: ${lang}.
@@ -486,7 +503,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
       const shots = Array.isArray(parsed)
         ? parsed
         : (parsed && Array.isArray((parsed as any).shots) ? (parsed as any).shots : []);
-      
+
       // FIX: Explicitly override the sceneId to match the source scene
       // This prevents the AI from hallucinating incorrect scene IDs
       const validShots = Array.isArray(shots) ? shots : [];
@@ -494,7 +511,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
         ...s,
         sceneId: String(scene.id) // Force String
       }));
-      
+
       // Log successful shot generation for this scene
       addRenderLogWithTokens({
         type: 'script-parsing',
@@ -505,7 +522,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
         prompt: prompt.substring(0, 200) + '...',
         duration: Date.now() - sceneStartTime
       });
-      
+
       return result;
 
     } catch (e: any) {
@@ -516,7 +533,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
       } catch {
         // ignore
       }
-      
+
       // Log failed shot generation for this scene
       addRenderLogWithTokens({
         type: 'script-parsing',
@@ -528,7 +545,7 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
         error: e.message || String(e),
         duration: Date.now() - sceneStartTime
       });
-      
+
       return [];
     }
   };
@@ -536,11 +553,11 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
   // Process scenes sequentially (Batch Size 1) to strictly minimize rate limits
   const BATCH_SIZE = 1;
   const allShots: Shot[] = [];
-  
+
   for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
     // Add delay between batches
     if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.all(
       batch.map((scene, idx) => processScene(scene, i + idx))
@@ -557,10 +574,10 @@ export const generateShotList = async (scriptData: ScriptData, model: string = '
   return allShots.map((s, idx) => ({
     ...s,
     id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes) ? s.keyframes.map(k => ({ 
-      ...k, 
+    keyframes: Array.isArray(s.keyframes) ? s.keyframes.map(k => ({
+      ...k,
       id: `kf-${idx + 1}-${k.type}`, // Normalized ID
-      status: 'pending' 
+      status: 'pending'
     })) : []
   }));
 };
@@ -603,14 +620,14 @@ const NEGATIVE_PROMPTS: { [key: string]: string } = {
  * @returns 返回包含visualPrompt和negativePrompt的对象
  */
 export const generateVisualPrompts = async (type: 'character' | 'scene', data: Character | Scene, genre: string, model: string = 'gpt-5.1', visualStyle: string = 'live-action', language: string = '中文'): Promise<{ visualPrompt: string; negativePrompt: string }> => {
-   const stylePrompt = VISUAL_STYLE_PROMPTS[visualStyle] || visualStyle;
-   const negativePrompt = NEGATIVE_PROMPTS[visualStyle] || NEGATIVE_PROMPTS['live-action'];
-   
-   let prompt: string;
-   
-   if (type === 'character') {
-     const char = data as Character;
-     prompt = `You are an expert AI prompt engineer for ${visualStyle} style image generation.
+  const stylePrompt = VISUAL_STYLE_PROMPTS[visualStyle] || visualStyle;
+  const negativePrompt = NEGATIVE_PROMPTS[visualStyle] || NEGATIVE_PROMPTS['live-action'];
+
+  let prompt: string;
+
+  if (type === 'character') {
+    const char = data as Character;
+    prompt = `You are an expert AI prompt engineer for ${visualStyle} style image generation.
 
 Create a detailed visual prompt for a character with the following structure:
 
@@ -637,9 +654,9 @@ CRITICAL RULES:
 - Focus on visual details that can be rendered in images
 
 Output ONLY the visual prompt text, no explanations.`;
-   } else {
-     const scene = data as Scene;
-     prompt = `You are an expert cinematographer and AI prompt engineer for ${visualStyle} productions.
+  } else {
+    const scene = data as Scene;
+    prompt = `You are an expert cinematographer and AI prompt engineer for ${visualStyle} productions.
 
 Create a cinematic scene prompt with this structure:
 
@@ -667,14 +684,14 @@ CRITICAL RULES:
 - Focus on elements that establish mood and cinematic quality
 
 Output ONLY the visual prompt text, no explanations.`;
-   }
+  }
 
-   const visualPrompt = await retryOperation(() => chatCompletion(prompt, model, 0.7, 1024));
-   
-   return {
-     visualPrompt: visualPrompt.trim(),
-     negativePrompt: negativePrompt
-   };
+  const visualPrompt = await retryOperation(() => chatCompletion(prompt, model, 0.7, 1024));
+
+  return {
+    visualPrompt: visualPrompt.trim(),
+    negativePrompt: negativePrompt
+  };
 };
 
 /**
@@ -720,85 +737,85 @@ export const generateImage = async (prompt: string, referenceImages: string[] = 
     `;
     }
 
-  const parts: any[] = [{ text: finalPrompt }];
+    const parts: any[] = [{ text: finalPrompt }];
 
-  // Attach reference images as inline data
-  referenceImages.forEach((imgUrl) => {
-    // Parse the data URL to get mimeType and base64 data
-    const match = imgUrl.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
-    if (match) {
-      parts.push({
-        inlineData: {
-          mimeType: match[1],
-          data: match[2]
-        }
-      });
-    }
-  });
-
-  const response = await retryOperation(async () => {
-    const res = await fetch(`${ANTSK_API_BASE}/v1beta/models/gemini-3-pro-image-preview:generateContent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': '*/*'
-      },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: parts
-        }]
-      })
+    // Attach reference images as inline data
+    referenceImages.forEach((imgUrl) => {
+      // Parse the data URL to get mimeType and base64 data
+      const match = imgUrl.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+      if (match) {
+        parts.push({
+          inlineData: {
+            mimeType: match[1],
+            data: match[2]
+          }
+        });
+      }
     });
 
-    if (!res.ok) {
-      // 特殊处理400、500状态码 - 提示词被风控拦截
-      if (res.status === 400) {
-        throw new Error('提示词可能包含不安全或违规内容，未能处理。请修改后重试。');
-      }
-      else if (res.status === 500) {
-        throw new Error('当前请求较多，暂时未能处理成功，请稍后重试。');
-      }
-      
-      let errorMessage = `HTTP错误: ${res.status}`;
-      try {
-        const errorData = await res.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (e) {
+    const response = await retryOperation(async () => {
+      const res = await fetch(`${IMAGE_API_URL}/v1beta/models/gemini-3-pro-image-preview:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': '*/*'
+        },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: parts
+          }]
+        })
+      });
+
+      if (!res.ok) {
+        // 特殊处理400、500状态码 - 提示词被风控拦截
+        if (res.status === 400) {
+          throw new Error('提示词可能包含不安全或违规内容，未能处理。请修改后重试。');
+        }
+        else if (res.status === 500) {
+          throw new Error('当前请求较多，暂时未能处理成功，请稍后重试。');
+        }
+
+        let errorMessage = `HTTP错误: ${res.status}`;
         const errorText = await res.text();
-        if (errorText) errorMessage = errorText;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch (e) {
+          if (errorText) errorMessage = errorText;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
+
+      return await res.json();
+    });
+
+    // Extract base64 image
+    const candidates = response.candidates || [];
+    if (candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
+      for (const part of candidates[0].content.parts) {
+        if (part.inlineData) {
+          const result = `data:image/png;base64,${part.inlineData.data}`;
+
+          // Log successful generation
+          addRenderLogWithTokens({
+            type: 'keyframe',
+            resourceId: 'image-' + Date.now(),
+            resourceName: prompt.substring(0, 50) + '...',
+            status: 'success',
+            model: 'imagen-3',
+            prompt: prompt,
+            duration: Date.now() - startTime
+          });
+
+          return result;
+        }
+      }
     }
 
-    return await res.json();
-  });
-
-  // Extract base64 image
-  const candidates = response.candidates || [];
-  if (candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
-    for (const part of candidates[0].content.parts) {
-      if (part.inlineData) {
-        const result = `data:image/png;base64,${part.inlineData.data}`;
-        
-        // Log successful generation
-        addRenderLogWithTokens({
-          type: 'keyframe',
-          resourceId: 'image-' + Date.now(),
-          resourceName: prompt.substring(0, 50) + '...',
-          status: 'success',
-          model: 'imagen-3',
-          prompt: prompt,
-          duration: Date.now() - startTime
-        });
-        
-        return result;
-      }
-    }
-  }
-  
-  throw new Error("图片生成失败 (No image data returned)");
+    throw new Error("图片生成失败 (No image data returned)");
   } catch (error: any) {
     // Log failed generation
     addRenderLogWithTokens({
@@ -811,7 +828,7 @@ export const generateImage = async (prompt: string, referenceImages: string[] = 
       error: error.message,
       duration: Date.now() - startTime
     });
-    
+
     throw error;
   }
 };
@@ -829,10 +846,10 @@ const convertVideoUrlToBase64 = async (url: string): Promise<string> => {
     if (!response.ok) {
       throw new Error(`下载视频失败: HTTP ${response.status}`);
     }
-    
+
     // 获取视频blob
     const blob = await response.blob();
-    
+
     // 转换为base64
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -896,26 +913,26 @@ const resizeImageToSize = async (base64Data: string, targetWidth: number, target
  */
 const generateVideoWithSora2 = async (prompt: string, startImageBase64: string | undefined, apiKey: string): Promise<string> => {
   console.log('🎬 使用sora-2异步模式生成视频...');
-  
+
   // 视频目标尺寸
   const VIDEO_WIDTH = 1280;
   const VIDEO_HEIGHT = 720;
-  
+
   // Step 1: 创建视频任务
   const formData = new FormData();
   formData.append('model', 'sora-2');
   formData.append('prompt', prompt);
   formData.append('seconds', '8');
   formData.append('size', `${VIDEO_WIDTH}x${VIDEO_HEIGHT}`); // 横屏尺寸
-  
+
   // 如果有参考图片，调整尺寸后添加到FormData
   if (startImageBase64) {
     const cleanBase64 = startImageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
-    
+
     // 调整图片尺寸以匹配视频尺寸要求
     console.log(`📐 调整参考图片尺寸至 ${VIDEO_WIDTH}x${VIDEO_HEIGHT}...`);
     const resizedBase64 = await resizeImageToSize(cleanBase64, VIDEO_WIDTH, VIDEO_HEIGHT);
-    
+
     // 将base64转换为Blob
     const byteCharacters = atob(resizedBase64);
     const byteNumbers = new Array(byteCharacters.length);
@@ -927,16 +944,16 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
     formData.append('input_reference', blob, 'reference.png');
     console.log('✅ 参考图片已调整尺寸并添加');
   }
-  
+
   // 创建任务
-  const createResponse = await fetch(`${ANTSK_API_BASE}/v1/videos`, {
+  const createResponse = await fetch(`${VIDEO_API_URL}/v1/videos`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`
     },
     body: formData
   });
-  
+
   if (!createResponse.ok) {
     if (createResponse.status === 400) {
       throw new Error('提示词可能包含不安全或违规内容，未能处理。请修改后重试。');
@@ -945,53 +962,53 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
       throw new Error('当前请求较多，暂时未能处理成功，请稍后重试。');
     }
     let errorMessage = `创建任务失败: HTTP ${createResponse.status}`;
+    const errorText = await createResponse.text();
     try {
-      const errorData = await createResponse.json();
+      const errorData = JSON.parse(errorText);
       errorMessage = errorData.error?.message || errorMessage;
     } catch (e) {
-      const errorText = await createResponse.text();
       if (errorText) errorMessage = errorText;
     }
     throw new Error(errorMessage);
   }
-  
+
   const createData = await createResponse.json();
   // 响应格式可能是 { id: "sora-2:task_xxx" } 或 { task_id: "xxx" }
   const taskId = createData.id || createData.task_id;
   if (!taskId) {
     throw new Error('创建视频任务失败：未返回任务ID');
   }
-  
+
   console.log('📋 sora-2任务已创建，任务ID:', taskId);
-  
+
   // Step 2: 轮询查询任务状态
   const maxPollingTime = 1200000; // 20分钟超时
   const pollingInterval = 5000; // 每5秒查询一次
   const startTime = Date.now();
-  
+
   let videoId: string | null = null;
-  
+
   while (Date.now() - startTime < maxPollingTime) {
     await new Promise(resolve => setTimeout(resolve, pollingInterval));
-    
-    const statusResponse = await fetch(`${ANTSK_API_BASE}/v1/videos/${taskId}`, {
+
+    const statusResponse = await fetch(`${VIDEO_API_URL}/v1/videos/${taskId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       }
     });
-    
+
     if (!statusResponse.ok) {
       console.warn('⚠️ 查询任务状态失败，继续重试...');
       continue;
     }
-    
+
     const statusData = await statusResponse.json();
     const status = statusData.status;
-    
+
     console.log('🔄 sora-2任务状态:', status, '进度:', statusData.progress);
-    
+
     if (status === 'completed' || status === 'succeeded') {
       // 任务完成，获取视频ID
       // 根据实际API响应，completed时 id 字段就是视频ID (如 video_xxx)
@@ -1011,25 +1028,25 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
     }
     // 其他状态（pending, processing等）继续轮询
   }
-  
+
   if (!videoId) {
     throw new Error('视频生成超时 (20分钟) 或未返回视频ID');
   }
-  
+
   console.log('✅ sora-2视频生成完成，视频ID:', videoId);
-  
+
   // Step 3: 下载视频内容（带重试和超时机制）
   const maxDownloadRetries = 5;
   const downloadTimeout = 600000; // 10分钟超时
-  
+
   for (let attempt = 1; attempt <= maxDownloadRetries; attempt++) {
     try {
       console.log(`📥 尝试下载视频 (第${attempt}/${maxDownloadRetries}次)...`);
-      
+
       const downloadController = new AbortController();
       const downloadTimeoutId = setTimeout(() => downloadController.abort(), downloadTimeout);
-      
-      const downloadResponse = await fetch(`${ANTSK_API_BASE}/v1/videos/${videoId}/content`, {
+
+      const downloadResponse = await fetch(`${VIDEO_API_URL}/v1/videos/${videoId}/content`, {
         method: 'GET',
         headers: {
           'Accept': '*/*',
@@ -1037,9 +1054,9 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
         },
         signal: downloadController.signal
       });
-      
+
       clearTimeout(downloadTimeoutId);
-      
+
       if (!downloadResponse.ok) {
         // 502/503/504 等服务器错误可以重试
         if (downloadResponse.status >= 500 && attempt < maxDownloadRetries) {
@@ -1049,10 +1066,10 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
         }
         throw new Error(`下载视频失败: HTTP ${downloadResponse.status}`);
       }
-      
+
       // 检查响应类型，可能直接返回视频blob或返回URL
       const contentType = downloadResponse.headers.get('content-type');
-      
+
       if (contentType && contentType.includes('video')) {
         // 直接返回视频数据
         const videoBlob = await downloadResponse.blob();
@@ -1070,11 +1087,11 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
         // 可能返回JSON包含URL
         const downloadData = await downloadResponse.json();
         const videoUrl = downloadData.url || downloadData.video_url || downloadData.download_url;
-        
+
         if (!videoUrl) {
           throw new Error('未获取到视频下载地址');
         }
-        
+
         // 下载并转换为base64
         const videoBase64 = await convertVideoUrlToBase64(videoUrl);
         console.log('✅ sora-2视频已转换为base64格式');
@@ -1097,7 +1114,7 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
       await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
     }
   }
-  
+
   throw new Error('下载视频失败：已达最大重试次数');
 };
 
@@ -1116,12 +1133,12 @@ const generateVideoWithSora2 = async (prompt: string, startImageBase64: string |
  */
 export const generateVideo = async (prompt: string, startImageBase64?: string, endImageBase64?: string, model: string = 'veo_3_1_i2v_s_fast_fl_landscape'): Promise<string> => {
   const apiKey = checkApiKey();
-  
+
   // sora-2 使用异步API模式
   if (model === 'sora-2') {
     return generateVideoWithSora2(prompt, startImageBase64, apiKey);
   }
-  
+
   // 其他模型继续使用同步模式 (/v1/chat/completions)
   // Clean base64 strings
   const cleanStart = startImageBase64?.replace(/^data:image\/(png|jpeg|jpg);base64,/, '') || '';
@@ -1136,7 +1153,7 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
   if (cleanStart) {
     messages[0].content = [
       { type: 'text', text: prompt },
-      { 
+      {
         type: 'image_url',
         image_url: { url: `data:image/png;base64,${cleanStart}` }
       }
@@ -1158,7 +1175,7 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
 
   try {
     const response = await retryOperation(async () => {
-      const res = await fetch(`${ANTSK_API_BASE}/v1/chat/completions`, {
+      const res = await fetch(`${VIDEO_API_URL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1175,19 +1192,19 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
 
       if (!res.ok) {
         // 特殊处理400、500状态码 - 提示词被风控拦截
-      if (res.status === 400) {
-        throw new Error('提示词可能包含不安全或违规内容，未能处理。请修改后重试。');
-      }
-      else if (res.status === 500) {
-        throw new Error('当前请求较多，暂时未能处理成功，请稍后重试。');
-      }
-        
+        if (res.status === 400) {
+          throw new Error('提示词可能包含不安全或违规内容，未能处理。请修改后重试。');
+        }
+        else if (res.status === 500) {
+          throw new Error('当前请求较多，暂时未能处理成功，请稍后重试。');
+        }
+
         let errorMessage = `HTTP错误: ${res.status}`;
+        const errorText = await res.text();
         try {
-          const errorData = await res.json();
+          const errorData = JSON.parse(errorText);
           errorMessage = errorData.error?.message || errorMessage;
         } catch (e) {
-          const errorText = await res.text();
           if (errorText) errorMessage = errorText;
         }
         throw new Error(errorMessage);
@@ -1201,7 +1218,7 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
     // Parse non-streaming response
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
-    
+
     // Look for video URL in the content
     const urlMatch = content.match(/(https?:\/\/[^\s]+\.mp4)/);
     const videoUrl = urlMatch ? urlMatch[1] : '';
@@ -1211,7 +1228,7 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
     }
 
     console.log('🎬 视频URL获取成功,正在转换为base64...');
-    
+
     // 将视频URL转换为base64,避免URL过期问题
     try {
       const videoBase64 = await convertVideoUrlToBase64(videoUrl);
@@ -1241,7 +1258,7 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
 export const continueScript = async (existingScript: string, language: string = '中文', model: string = 'gpt-5.1'): Promise<string> => {
   console.log('✍️ continueScript 调用 - 使用模型:', model);
   const startTime = Date.now();
-  
+
   const prompt = `
 你是一位资深剧本创作者。请在充分理解下方已有剧本内容的基础上，续写后续情节。
 
@@ -1263,7 +1280,7 @@ ${existingScript}
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.8, 4096));
     const duration = Date.now() - startTime;
-    
+
     await addRenderLogWithTokens({
       type: 'script-parsing',
       resourceId: 'continue-script',
@@ -1273,7 +1290,7 @@ ${existingScript}
       duration,
       prompt: existingScript.substring(0, 200) + '...'
     });
-    
+
     return result;
   } catch (error) {
     console.error('❌ 续写失败:', error);
@@ -1291,7 +1308,7 @@ ${existingScript}
 export const rewriteScript = async (originalScript: string, language: string = '中文', model: string = 'gpt-5.1'): Promise<string> => {
   console.log('🔄 rewriteScript 调用 - 使用模型:', model);
   const startTime = Date.now();
-  
+
   const prompt = `
 你是一位顶级剧本编剧顾问，擅长提升剧本的结构、情感和戏剧张力。请对下方提供的剧本进行系统性、创造性改写，目标是使剧本在连贯性、流畅性和戏剧冲突等方面显著提升。
 
@@ -1317,7 +1334,7 @@ ${originalScript}
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.7, 8192));
     const duration = Date.now() - startTime;
-    
+
     await addRenderLogWithTokens({
       type: 'script-parsing',
       resourceId: 'rewrite-script',
@@ -1327,7 +1344,7 @@ ${originalScript}
       duration,
       prompt: originalScript.substring(0, 200) + '...'
     });
-    
+
     return result;
   } catch (error) {
     console.error('❌ 改写失败:', error);
@@ -1481,17 +1498,17 @@ ${styleDesc}
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.7, 2048, 'json_object'));
     const duration = Date.now() - startTime;
-    
+
     // 解析JSON响应
     const cleaned = cleanJsonString(result);
     const parsed = JSON.parse(cleaned);
-    
+
     if (!parsed.startFrame || !parsed.endFrame) {
       throw new Error('AI返回的JSON格式不正确');
     }
-    
+
     console.log('✅ AI同时优化起始帧和结束帧成功，耗时:', duration, 'ms');
-    
+
     return {
       startPrompt: parsed.startFrame.trim(),
       endPrompt: parsed.endFrame.trim()
@@ -1527,7 +1544,7 @@ export const optimizeKeyframePrompt = async (
   const startTime = Date.now();
 
   const frameLabel = frameType === 'start' ? '起始帧' : '结束帧';
-  const frameFocus = frameType === 'start' 
+  const frameFocus = frameType === 'start'
     ? '初始状态、起始姿态、预备动作、场景建立'
     : '最终状态、结束姿态、动作完成、情绪高潮';
 
@@ -1640,9 +1657,9 @@ ${frameType === 'start' ? `
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.7, 1024));
     const duration = Date.now() - startTime;
-    
+
     console.log(`✅ AI ${frameLabel}优化成功，耗时:`, duration, 'ms');
-    
+
     return result.trim();
   } catch (error: any) {
     console.error(`❌ AI ${frameLabel}优化失败:`, error);
@@ -1734,9 +1751,9 @@ ${actionReferenceExamples}
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.8, 2048));
     const duration = Date.now() - startTime;
-    
+
     console.log('✅ AI动作生成成功，耗时:', duration, 'ms');
-    
+
     return result.trim();
   } catch (error: any) {
     console.error('❌ AI动作生成失败:', error);
@@ -1949,26 +1966,26 @@ ${shot.dialogue ? `**对白：** "${shot.dialogue}"
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.7, 4096, 'json_object'));
     const duration = Date.now() - startTime;
-    
+
     // 清理和解析JSON
     const cleaned = cleanJsonString(result);
     const parsed = JSON.parse(cleaned);
-    
+
     if (!parsed.subShots || !Array.isArray(parsed.subShots) || parsed.subShots.length === 0) {
       throw new Error('AI返回的JSON格式不正确或子镜头数组为空');
     }
-    
+
     // 验证每个子镜头包含必需字段
     for (const subShot of parsed.subShots) {
       if (!subShot.shotSize || !subShot.cameraMovement || !subShot.actionSummary || !subShot.visualFocus) {
         throw new Error('子镜头缺少必需字段（shotSize、cameraMovement、actionSummary、visualFocus）');
       }
-      
+
       // 验证关键帧数组
       if (!subShot.keyframes || !Array.isArray(subShot.keyframes) || subShot.keyframes.length === 0) {
         throw new Error('子镜头缺少关键帧数组（keyframes）');
       }
-      
+
       // 验证每个关键帧
       for (const kf of subShot.keyframes) {
         if (!kf.type || !kf.visualPrompt) {
@@ -1979,9 +1996,9 @@ ${shot.dialogue ? `**对白：** "${shot.dialogue}"
         }
       }
     }
-    
+
     console.log(`✅ 镜头拆分成功，生成 ${parsed.subShots.length} 个子镜头，耗时:`, duration, 'ms');
-    
+
     // 记录成功日志
     addRenderLogWithTokens({
       type: 'script-parsing',
@@ -1992,11 +2009,11 @@ ${shot.dialogue ? `**对白：** "${shot.dialogue}"
       prompt: prompt.substring(0, 200) + '...',
       duration: duration
     });
-    
+
     return parsed;
   } catch (error: any) {
     console.error('❌ 镜头拆分失败:', error);
-    
+
     // 记录失败日志
     addRenderLogWithTokens({
       type: 'script-parsing',
@@ -2008,7 +2025,7 @@ ${shot.dialogue ? `**对白：** "${shot.dialogue}"
       error: error.message,
       duration: Date.now() - startTime
     });
-    
+
     throw new Error(`镜头拆分失败: ${error.message}`);
   }
 };
@@ -2124,9 +2141,9 @@ ${frameType === 'start' ? '建立清晰的初始状态、起始姿态、为后�
   try {
     const result = await retryOperation(() => chatCompletion(prompt, model, 0.7, 3072));
     const duration = Date.now() - startTime;
-    
+
     console.log(`✅ AI ${frameLabel}增强成功，耗时:`, duration, 'ms');
-    
+
     // 将基础提示词和增强内容组合
     return `${basePrompt}
 

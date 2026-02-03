@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEO 检查工具 - BigBanana AI Director</title>
+    <title>SEO 检查工具 - DrawBookAI AI Director</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background: #050505;
@@ -17,20 +19,24 @@
             padding: 40px 20px;
             line-height: 1.6;
         }
+
         .container {
             max-width: 900px;
             margin: 0 auto;
         }
+
         h1 {
             font-size: 32px;
             margin-bottom: 10px;
             color: #fff;
         }
+
         .subtitle {
             color: #888;
             margin-bottom: 40px;
             font-size: 14px;
         }
+
         .check-section {
             background: #0a0a0a;
             border: 1px solid #222;
@@ -38,6 +44,7 @@
             padding: 30px;
             margin-bottom: 20px;
         }
+
         .check-section h2 {
             font-size: 20px;
             margin-bottom: 20px;
@@ -46,6 +53,7 @@
             align-items: center;
             gap: 10px;
         }
+
         .status {
             display: inline-block;
             padding: 4px 12px;
@@ -53,18 +61,22 @@
             font-size: 12px;
             font-weight: 600;
         }
+
         .status.success {
             background: #0f4c2f;
             color: #4ade80;
         }
+
         .status.error {
             background: #4c0f0f;
             color: #f87171;
         }
+
         .status.warning {
             background: #4c3f0f;
             color: #fbbf24;
         }
+
         .check-item {
             display: flex;
             align-items: flex-start;
@@ -75,31 +87,39 @@
             border-radius: 8px;
             border-left: 3px solid transparent;
         }
+
         .check-item.pass {
             border-left-color: #4ade80;
         }
+
         .check-item.fail {
             border-left-color: #f87171;
         }
+
         .check-item.warn {
             border-left-color: #fbbf24;
         }
+
         .icon {
             font-size: 20px;
             flex-shrink: 0;
         }
+
         .content {
             flex: 1;
         }
+
         .label {
             font-weight: 600;
             color: #fff;
             margin-bottom: 4px;
         }
+
         .description {
             font-size: 13px;
             color: #888;
         }
+
         .value {
             font-size: 12px;
             color: #aaa;
@@ -110,6 +130,7 @@
             font-family: 'Courier New', monospace;
             word-break: break-all;
         }
+
         button {
             background: #fff;
             color: #000;
@@ -121,20 +142,24 @@
             font-size: 14px;
             transition: all 0.2s;
         }
+
         button:hover {
             background: #e5e5e5;
             transform: translateY(-1px);
         }
+
         .button-group {
             display: flex;
             gap: 12px;
             margin-top: 30px;
         }
+
         .summary {
             display: flex;
             gap: 20px;
             margin-bottom: 30px;
         }
+
         .summary-card {
             flex: 1;
             background: #0a0a0a;
@@ -143,11 +168,13 @@
             padding: 20px;
             text-align: center;
         }
+
         .summary-number {
             font-size: 36px;
             font-weight: 700;
             margin-bottom: 8px;
         }
+
         .summary-label {
             font-size: 12px;
             color: #888;
@@ -156,10 +183,11 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>🔍 SEO 检查工具</h1>
-        <p class="subtitle">BigBanana AI Director - 自动检测页面 SEO 配置</p>
+        <p class="subtitle">DrawBookAI AI Director - 自动检测页面 SEO 配置</p>
 
         <div class="summary" id="summary">
             <div class="summary-card">
@@ -241,9 +269,9 @@
             checks.forEach(section => {
                 const sectionDiv = document.createElement('div');
                 sectionDiv.className = 'check-section';
-                
+
                 let sectionHTML = `<h2>${section.category}</h2>`;
-                
+
                 section.items.forEach(item => {
                     const element = document.querySelector(item.selector);
                     let status = 'fail';
@@ -340,7 +368,7 @@
                     const response = await fetch(file.url);
                     const status = response.ok ? 'pass' : 'fail';
                     const icon = response.ok ? '✅' : '❌';
-                    
+
                     filesSection.innerHTML += `
                         <div class="check-item ${status}">
                             <div class="icon">${icon}</div>
@@ -370,12 +398,5 @@
         window.addEventListener('load', runCheck);
     </script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-

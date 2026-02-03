@@ -3,21 +3,26 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
-      plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.ANTSK_API_KEY),
-        'process.env.ANTSK_API_KEY': JSON.stringify(env.ANTSK_API_KEY)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
+  const env = loadEnv(mode, '.', '');
+  return {
+    server: {
+      port: 3000,
+      host: '0.0.0.0',
+    },
+    plugins: [react()],
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.ANTSK_API_KEY),
+      'process.env.ANTSK_API_KEY': JSON.stringify(env.ANTSK_API_KEY),
+      'process.env.ALL_API_BASE': JSON.stringify(env.ALL_API_BASE),
+      'process.env.USE_GLOBAL_API': JSON.stringify(env.USE_GLOBAL_API),
+      'process.env.TEXT_API_BASE': JSON.stringify(env.TEXT_API_BASE),
+      'process.env.IMAGE_API_BASE': JSON.stringify(env.IMAGE_API_BASE),
+      'process.env.VIDEO_API_BASE': JSON.stringify(env.VIDEO_API_BASE)
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
       }
-    };
+    }
+  };
 });

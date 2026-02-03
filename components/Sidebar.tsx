@@ -25,12 +25,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, proje
         <div className="flex items-center gap-3 mb-6">
           <img src={logoImg} alt="Logo" className="w-8 h-8 flex-shrink-0" />
           <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-white tracking-wider">BigBanana</h1>
+            <h1 className="text-sm font-bold text-white tracking-wider">DrawBookAI</h1>
             <p className="text-[10px] text-zinc-500 tracking-widest">Studio Pro</p>
           </div>
         </div>
 
-        <button 
+        <button
           onClick={onExit}
           className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-xs font-mono uppercase tracking-wide group"
         >
@@ -41,8 +41,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, proje
 
       {/* Project Status */}
       <div className="px-6 py-4 border-b border-zinc-900">
-         <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">当前项目</div>
-         <div className="text-sm font-medium text-zinc-200 truncate font-mono">{projectName || '未命名项目'}</div>
+        <div className="text-[10px] text-zinc-600 uppercase tracking-widest mb-1">当前项目</div>
+        <div className="text-sm font-medium text-zinc-200 truncate font-mono">{projectName || '未命名项目'}</div>
       </div>
 
       {/* Navigation */}
@@ -53,11 +53,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, proje
             <button
               key={item.id}
               onClick={() => setStage(item.id as any)}
-              className={`w-full flex items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${
-                isActive 
-                  ? 'border-white bg-zinc-900/50 text-white' 
+              className={`w-full flex items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${isActive
+                  ? 'border-white bg-zinc-900/50 text-white'
                   : 'border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`} />
